@@ -25,8 +25,8 @@ REQUIRED = [
     'numpy', 
     'pandas', 
     'xlsxwriter', 
-    'flask==1.1.2', 
-    'flask_socketio==4.3.1', 
+    'flask', 
+    'flask_socketio', 
     'pyquery', 
     'flask-compress', 
     'psutil', 
@@ -88,18 +88,18 @@ class UploadCommand(Command):
 
     def run(self):
         try:
-            self.status('Removing previous buildsâ€¦')
+            self.status('Removing previous buildsâ€?')
             rmtree(os.path.join(here, 'dist'))
         except OSError:
             pass
 
-        self.status('Building Source and Wheel (universal) distributionâ€¦')
+        self.status('Building Source and Wheel (universal) distributionâ€?')
         os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
 
-        self.status('Uploading the package to PyPI via Twineâ€¦')
+        self.status('Uploading the package to PyPI via Twineâ€?')
         os.system('twine upload dist/*')
 
-        self.status('Pushing git tagsâ€¦')
+        self.status('Pushing git tagsâ€?')
         os.system('git tag v{0}'.format(about['__version__']))
         os.system('git push --tags')
 
