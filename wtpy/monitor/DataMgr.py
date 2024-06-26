@@ -6,6 +6,7 @@ import hashlib
 import datetime
 from .WtLogger import WtLogger
 
+
 def backup_file(filename):
     if not os.path.exists(filename):
         return
@@ -20,20 +21,21 @@ def backup_file(filename):
     import shutil
     shutil.copy(filename, target)
 
+
 class DataMgr:
 
-    def __init__(self, datafile:str="mondata.db", logger:WtLogger=None):
+    def __init__(self, datafile: str = "mondata.db", logger: WtLogger = None):
         self.__grp_cache__ = dict()
         self.__logger__ = logger
 
         self.__db_conn__ = sqlite3.connect(datafile, check_same_thread=False)
         self.__check_db__()
 
-        #加载组合列表
+        # 加载组合列表
         cur = self.__db_conn__.cursor()
         self.__config__ = {
-            "groups":{},
-            "users":{}
+            "groups": {},
+            "users": {}
         }
 
         for row in cur.execute("SELECT * FROM groups;"):
@@ -73,7 +75,7 @@ class DataMgr:
         tables = []
         for row in cur.execute("select name from sqlite_master where type='table' order by name"):
             tables.append(row[0])
-        
+
         if "actions" not in tables:
             sql = "CREATE TABLE [actions] (\n"
             sql += "[id] INTEGER PRIMARY KEY autoincrement, \n"
@@ -159,7 +161,7 @@ class DataMgr:
                 bNeedReset = True
             else:
                 td = now - cache_time
-                if td.total_seconds() >= 60:# 上次缓存时间超过60s，则重新读取
+                if td.total_seconds() >= 60:  # 上次缓存时间超过60s，则重新读取
                     bNeedReset = True
 
             if bNeedReset:
@@ -179,9 +181,9 @@ class DataMgr:
                     f.close()
 
                     self.__grp_cache__[grpid] = {
-                        "strategies":marker["marks"],
-                        "channels":marker["channels"]
-                    } 
+                        "strategies": marker["marks"],
+                        "channels": marker["channels"]
+                    }
 
                     if "executers" in marker:
                         self.__grp_cache__[grpid]["executers"] = marker["executers"]
@@ -190,16 +192,16 @@ class DataMgr:
 
                 except:
                     self.__grp_cache__[grpid] = {
-                        "strategies":[],
-                        "channels":[],
-                        "executers":[]
-                    } 
+                        "strategies": [],
+                        "channels": [],
+                        "executers": []
+                    }
             self.__grp_cache__[grpid]["strategies"].sort()
             self.__grp_cache__[grpid]["channels"].sort()
             self.__grp_cache__[grpid]["executers"].sort()
             self.__grp_cache__[grpid]["cachetime"] = now
 
-    def get_groups(self, tpfilter:str=''):
+    def get_groups(self, tpfilter: str = ''):
         ret = []
         for grpid in self.__config__["groups"]:
             grpinfo = self.__config__["groups"][grpid]
@@ -207,19 +209,19 @@ class DataMgr:
                 ret.append(grpinfo)
             elif grpinfo["gtype"] == tpfilter:
                 ret.append(grpinfo)
-        
+
         return ret
 
-    def has_group(self, grpid:str):
+    def has_group(self, grpid: str):
         return (grpid in self.__config__["groups"])
 
-    def get_group(self, grpid:str) -> dict:
+    def get_group(self, grpid: str) -> dict:
         if grpid in self.__config__["groups"]:
             return self.__config__["groups"][grpid]
         else:
             return None
 
-    def get_group_cfg(self, grpid:str):
+    def get_group_cfg(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return "{}"
         else:
@@ -238,7 +240,7 @@ class DataMgr:
             else:
                 return json.loads(content)
 
-    def set_group_cfg(self, grpid:str, config:dict):
+    def set_group_cfg(self, grpid: str, config: dict):
         if grpid not in self.__config__["groups"]:
             return False
         else:
@@ -257,7 +259,7 @@ class DataMgr:
             f.close()
             return True
 
-    def get_group_entry(self, grpid:str):
+    def get_group_entry(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return "{}"
         else:
@@ -269,7 +271,7 @@ class DataMgr:
             f.close()
             return content
 
-    def set_group_entry(self, grpid:str, content:str):
+    def set_group_entry(self, grpid: str, content: str):
         if grpid not in self.__config__["groups"]:
             return False
         else:
@@ -282,7 +284,7 @@ class DataMgr:
             f.close()
             return True
 
-    def add_group(self, grpInfo:dict):
+    def add_group(self, grpInfo: dict):
         grpid = grpInfo["id"]
         isNewGrp = not (grpid in self.__config__["groups"])
 
@@ -292,10 +294,12 @@ class DataMgr:
             sql = ''
             if isNewGrp:
                 sql = "INSERT INTO groups(groupid,name,path,info,gtype,datmod,env,mqurl) VALUES('%s','%s','%s','%s','%s','%s','%s','%s');" \
-                    % (grpid, grpInfo["name"], grpInfo["path"], grpInfo["info"], grpInfo["gtype"], grpInfo["datmod"], grpInfo["env"], grpInfo["mqurl"])
+                      % (grpid, grpInfo["name"], grpInfo["path"], grpInfo["info"], grpInfo["gtype"], grpInfo["datmod"],
+                         grpInfo["env"], grpInfo["mqurl"])
             else:
                 sql = "UPDATE groups SET name='%s',path='%s',info='%s',gtype='%s',datmod='%s',env='%s',mqurl='%s',modifytime=datetime('now','localtime') WHERE groupid='%s';" \
-                    % (grpInfo["name"], grpInfo["path"], grpInfo["info"], grpInfo["gtype"], grpInfo["datmod"], grpInfo["env"], grpInfo["mqurl"], grpid)
+                      % (grpInfo["name"], grpInfo["path"], grpInfo["info"], grpInfo["gtype"], grpInfo["datmod"],
+                         grpInfo["env"], grpInfo["mqurl"], grpid)
             cur.execute(sql)
             self.__db_conn__.commit()
             bSucc = True
@@ -307,10 +311,10 @@ class DataMgr:
 
         return bSucc
 
-    def del_group(self, grpid:str):
+    def del_group(self, grpid: str):
         if grpid in self.__config__["groups"]:
             self.__config__["groups"].pop(grpid)
-            
+
             cur = self.__db_conn__.cursor()
             cur.execute("DELETE FROM groups WHERE groupid='%s';" % (grpid))
             self.__db_conn__.commit()
@@ -319,8 +323,8 @@ class DataMgr:
         ret = []
         for loginid in self.__config__["users"]:
             usrInfo = self.__config__["users"][loginid]
-            ret.append(usrInfo.copy())                
-        
+            ret.append(usrInfo.copy())
+
         return ret
 
     def add_user(self, usrInfo, admin):
@@ -330,35 +334,36 @@ class DataMgr:
         cur = self.__db_conn__.cursor()
         now = datetime.datetime.now()
         if isNewUser:
-            encpwd = hashlib.md5((loginid+usrInfo["passwd"]).encode("utf-8")).hexdigest()
+            encpwd = hashlib.md5((loginid + usrInfo["passwd"]).encode("utf-8")).hexdigest()
             usrInfo["passwd"] = encpwd
             usrInfo["createby"] = admin
             usrInfo["modifyby"] = admin
             usrInfo["createtime"] = now.strftime("%Y-%m-%d %H:%M:%S")
             usrInfo["modifytime"] = now.strftime("%Y-%m-%d %H:%M:%S")
-            cur.execute("INSERT INTO users(loginid,name,role,passwd,iplist,remark,createby,modifyby) VALUES(?,?,?,?,?,?,?,?);", 
+            cur.execute(
+                "INSERT INTO users(loginid,name,role,passwd,iplist,remark,createby,modifyby) VALUES(?,?,?,?,?,?,?,?);",
                 (loginid, usrInfo["name"], usrInfo["role"], encpwd, usrInfo["iplist"], usrInfo["remark"], admin, admin))
         else:
             usrInfo["modifyby"] = admin
             usrInfo["modifytime"] = now.strftime("%Y-%m-%d %H:%M:%S")
-            cur.execute("UPDATE users SET name=?,role=?,iplist=?,remark=?,modifyby=?,modifytime=datetime('now','localtime') WHERE loginid=?;", 
+            cur.execute(
+                "UPDATE users SET name=?,role=?,iplist=?,remark=?,modifyby=?,modifytime=datetime('now','localtime') WHERE loginid=?;",
                 (usrInfo["name"], usrInfo["role"], usrInfo["iplist"], usrInfo["remark"], admin, loginid))
         self.__db_conn__.commit()
 
         self.__config__["users"][loginid] = usrInfo
 
-    def mod_user_pwd(self, loginid:str, newpwd:str, admin:str):
+    def mod_user_pwd(self, loginid: str, newpwd: str, admin: str):
         cur = self.__db_conn__.cursor()
-        cur.execute("UPDATE users SET passwd=?,modifyby=?,modifytime=datetime('now','localtime') WHERE loginid=?;", 
-                (newpwd,admin,loginid))
+        cur.execute("UPDATE users SET passwd=?,modifyby=?,modifytime=datetime('now','localtime') WHERE loginid=?;",
+                    (newpwd, admin, loginid))
         self.__db_conn__.commit()
-        self.__config__["users"][loginid]["passwd"]=newpwd
-
+        self.__config__["users"][loginid]["passwd"] = newpwd
 
     def del_user(self, loginid, admin):
         if loginid in self.__config__["users"]:
             self.__config__["users"].pop(loginid)
-            
+
             cur = self.__db_conn__.cursor()
             cur.execute("DELETE FROM users WHERE loginid='%s';" % (loginid))
             self.__db_conn__.commit()
@@ -369,57 +374,57 @@ class DataMgr:
     def log_action(self, adminInfo, atype, remark):
         cur = self.__db_conn__.cursor()
         sql = "INSERT INTO actions(loginid,actiontime,actionip,actiontype,remark) VALUES('%s',datetime('now','localtime'),'%s','%s','%s');" % (
-                adminInfo["loginid"], adminInfo["loginip"], atype, remark)
+            adminInfo["loginid"], adminInfo["loginip"], atype, remark)
         cur.execute(sql)
         self.__db_conn__.commit()
 
-    def get_user(self, loginid:str):
+    def get_user(self, loginid: str):
         if loginid in self.__config__["users"]:
             return self.__config__["users"][loginid].copy()
         elif loginid == 'superman':
             return {
-                "loginid":loginid,
-                "name":"超管",
-                "role":"superman",
-                "passwd":"25ed305a56504e95fd1ca9900a1da174",
-                "iplist":"",
-                "remark":"内置超管账号",
-                'builtin':True
+                "loginid": loginid,
+                "name": "超管",
+                "role": "superman",
+                "passwd": "25ed305a56504e95fd1ca9900a1da174",
+                "iplist": "",
+                "remark": "内置超管账号",
+                'builtin': True
             }
         else:
             return None
 
-    def get_strategies(self, grpid:str):
+    def get_strategies(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-        
+
         return self.__grp_cache__[grpid]["strategies"]
 
-    def get_channels(self, grpid:str):
+    def get_channels(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-        
+
         return self.__grp_cache__[grpid]["channels"]
 
-    def get_trades(self, grpid:str, straid:str, limit:int = 200):
+    def get_trades(self, grpid: str, straid: str, limit: int = 200):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         if straid not in self.__grp_cache__[grpid]["strategies"]:
             return []
 
         if "trades" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["trades"] = dict()
-        
+
         if straid not in self.__grp_cache__[grpid]["trades"]:
             filepath = "./generated/outputs/%s/trades.csv" % (straid)
             filepath = os.path.join(grpInfo["path"], filepath)
@@ -437,7 +442,7 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
@@ -445,7 +450,7 @@ class DataMgr:
                 continue
 
             tItem = {
-                "strategy":straid,
+                "strategy": straid,
                 "code": cells[0],
                 "time": int(cells[1]),
                 "direction": cells[2],
@@ -456,27 +461,27 @@ class DataMgr:
                 "fee": 0
             }
 
-            if len(cells) > 7:
+            if len(cells) > 7 and cells[7] != "\n":
                 tItem["fee"] = float(cells[7])
 
             trdCache["trades"].append(tItem)
             trdCache["lastrow"] += 1
-        
+
         return trdCache["trades"][-limit:]
 
-    def get_funds(self, grpid:str, straid:str):
+    def get_funds(self, grpid: str, straid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         if straid not in self.__grp_cache__[grpid]["strategies"]:
             return []
 
         if "funds" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["funds"] = dict()
-        
+
         if straid not in self.__grp_cache__[grpid]["funds"]:
             filepath = "./generated/outputs/%s/funds.csv" % (straid)
             filepath = os.path.join(grpInfo["path"], filepath)
@@ -495,7 +500,7 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
@@ -503,7 +508,7 @@ class DataMgr:
                 continue
 
             tItem = {
-                "strategy":straid,
+                "strategy": straid,
                 "date": int(cells[0]),
                 "closeprofit": float(cells[1]),
                 "dynprofit": float(cells[2]),
@@ -534,7 +539,7 @@ class DataMgr:
             fund = json_data["fund"]
             if fund["tdate"] > last_date:
                 ret.append({
-                    "strategy":straid,
+                    "strategy": straid,
                     "date": fund["tdate"],
                     "closeprofit": fund["total_profit"],
                     "dynprofit": fund["total_dynprofit"],
@@ -544,22 +549,22 @@ class DataMgr:
         except:
             pass
         f.close()
-        
+
         return ret
 
-    def get_signals(self, grpid:str, straid:str, limit:int = 200):
+    def get_signals(self, grpid: str, straid: str, limit: int = 200):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         if straid not in self.__grp_cache__[grpid]["strategies"]:
             return []
 
         if "signals" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["signals"] = dict()
-        
+
         if straid not in self.__grp_cache__[grpid]["signals"]:
             filepath = "./generated/outputs/%s/signals.csv" % (straid)
             filepath = os.path.join(grpInfo["path"], filepath)
@@ -578,38 +583,49 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
 
-            tItem = {
-                "strategy":straid,
-                "code": cells[0],
-                "target": float(cells[1]),
-                "sigprice": float(cells[2]),
-                "gentime": cells[3],
-                "tag": cells[4]
-            }
+            try:
+                tItem = {
+                    "strategy": straid,
+                    "code": cells[0],
+                    "target": float(cells[1]),
+                    "sigprice": float(cells[2]),
+                    "gentime": cells[3],
+                    "tag": cells[4]
+                }
+            except Exception as e:
+                print(e)
+                tItem = {
+                    "strategy": straid,
+                    "code": "",
+                    "target": float(cells[1]),
+                    "sigprice": float(cells[3]),
+                    "gentime": cells[0],
+                    "tag": ""
+                }
 
             trdCache["signals"].append(tItem)
 
-        trdCache["lastrow"] += len(lines)        
+        trdCache["lastrow"] += len(lines)
         return trdCache["signals"][-limit:]
 
-    def get_rounds(self, grpid:str, straid:str, limit:int = 200):
+    def get_rounds(self, grpid: str, straid: str, limit: int = 200):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         if straid not in self.__grp_cache__[grpid]["strategies"]:
             return []
 
         if "rounds" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["rounds"] = dict()
-        
+
         if straid not in self.__grp_cache__[grpid]["rounds"]:
             filepath = "./generated/outputs/%s/closes.csv" % (straid)
             filepath = os.path.join(grpInfo["path"], filepath)
@@ -627,13 +643,13 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
 
             tItem = {
-                "strategy":straid,
+                "strategy": straid,
                 "code": cells[0],
                 "direct": cells[1],
                 "opentime": int(cells[2]),
@@ -648,26 +664,26 @@ class DataMgr:
 
             trdCache["rounds"].append(tItem)
         trdCache["lastrow"] += len(lines)
-        
+
         return trdCache["rounds"][-limit:]
 
-    def get_positions(self, grpid:str, straid:str):
+    def get_positions(self, grpid: str, straid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         ret = list()
         if straid != "all":
             if straid not in self.__grp_cache__[grpid]["strategies"]:
                 return []
-            
+
             filepath = "./generated/stradata/%s.json" % (straid)
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
-            
+
             f = open(filepath, "r")
             try:
                 content = f.read()
@@ -696,7 +712,7 @@ class DataMgr:
                 filepath = os.path.join(grpInfo["path"], filepath)
                 if not os.path.exists(filepath):
                     return []
-                
+
                 f = open(filepath, "r")
                 try:
                     content = f.read()
@@ -721,19 +737,19 @@ class DataMgr:
                 f.close()
         return ret
 
-    def get_channel_orders(self, grpid:str, chnlid:str, limit:int = 200):
+    def get_channel_orders(self, grpid: str, chnlid: str, limit: int = 200):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         if chnlid not in self.__grp_cache__[grpid]["channels"]:
             return []
 
         if "corders" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["corders"] = dict()
-        
+
         if chnlid not in self.__grp_cache__[grpid]["corders"]:
             filepath = "./generated/traders/%s/orders.csv" % (chnlid)
             filepath = os.path.join(grpInfo["path"], filepath)
@@ -748,19 +764,19 @@ class DataMgr:
 
         trdCache = self.__grp_cache__[grpid]["corders"][chnlid]
 
-        f = open(trdCache["file"], "r",encoding="gb2312",errors="ignore")
+        f = open(trdCache["file"], "r", encoding="gb2312", errors="ignore")
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
 
             tItem = {
-                "channel":chnlid,
-                "localid":int(cells[0]),
-                "time":int(cells[2]),
+                "channel": chnlid,
+                "localid": int(cells[0]),
+                "time": int(cells[2]),
                 "code": cells[3],
                 "action": cells[4],
                 "total": float(cells[5]),
@@ -772,22 +788,22 @@ class DataMgr:
             }
 
             trdCache["corders"].append(tItem)
-        
+
         return trdCache["corders"][-limit:]
 
-    def get_channel_trades(self, grpid:str, chnlid:str, limit:int = 200):
+    def get_channel_trades(self, grpid: str, chnlid: str, limit: int = 200):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         if chnlid not in self.__grp_cache__[grpid]["channels"]:
             return []
 
         if "ctrades" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["ctrades"] = dict()
-        
+
         if chnlid not in self.__grp_cache__[grpid]["ctrades"]:
             filepath = "./generated/traders/%s/trades.csv" % (chnlid)
             filepath = os.path.join(grpInfo["path"], filepath)
@@ -802,19 +818,19 @@ class DataMgr:
 
         trdCache = self.__grp_cache__[grpid]["ctrades"][chnlid]
 
-        f = open(trdCache["file"], "r",encoding="gb2312")
+        f = open(trdCache["file"], "r", encoding="gb2312")
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
 
             tItem = {
-                "channel":chnlid,
-                "localid":int(cells[0]),
-                "time":int(cells[2]),
+                "channel": chnlid,
+                "localid": int(cells[0]),
+                "time": int(cells[2]),
                 "code": cells[3],
                 "action": cells[4],
                 "volume": float(cells[5]),
@@ -824,10 +840,10 @@ class DataMgr:
             }
 
             trdCache["ctrades"].append(tItem)
-        
+
         return trdCache["ctrades"][-limit:]
 
-    def get_channel_positions(self, grpid:str, chnlid:str):
+    def get_channel_positions(self, grpid: str, chnlid: str):
         if self.__config__ is None:
             return []
 
@@ -839,7 +855,7 @@ class DataMgr:
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         ret = list()
         channels = list()
         if chnlid != 'all':
@@ -850,12 +866,12 @@ class DataMgr:
         for cid in channels:
             if cid not in self.__grp_cache__[grpid]["channels"]:
                 continue
-            
+
             filepath = "./generated/traders/%s/rtdata.json" % (cid)
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
-            
+
             f = open(filepath, "r")
             try:
                 content = f.read()
@@ -871,7 +887,7 @@ class DataMgr:
             f.close()
         return ret
 
-    def get_channel_funds(self, grpid:str, chnlid:str):
+    def get_channel_funds(self, grpid: str, chnlid: str):
         if self.__config__ is None:
             return []
 
@@ -883,7 +899,7 @@ class DataMgr:
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-            
+
         ret = dict()
         channels = list()
         if chnlid != 'all':
@@ -894,12 +910,12 @@ class DataMgr:
         for cid in channels:
             if cid not in self.__grp_cache__[grpid]["channels"]:
                 continue
-            
+
             filepath = "./generated/traders/%s/rtdata.json" % (cid)
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 continue
-            
+
             f = open(filepath, "r")
             try:
                 content = f.read()
@@ -917,7 +933,9 @@ class DataMgr:
         ret = list()
 
         cur = self.__db_conn__.cursor()
-        for row in cur.execute("SELECT id,loginid,actiontime,actionip,actiontype,remark FROM actions WHERE actiontime>=? and actiontime<=?;", (sdate, edate)):
+        for row in cur.execute(
+                "SELECT id,loginid,actiontime,actionip,actiontype,remark FROM actions WHERE actiontime>=? and actiontime<=?;",
+                (sdate, edate)):
             aInfo = dict()
             aInfo["id"] = row[0]
             aInfo["loginid"] = row[1]
@@ -930,7 +948,7 @@ class DataMgr:
 
         return ret
 
-    def get_group_trades(self, grpid:str):
+    def get_group_trades(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
@@ -939,7 +957,7 @@ class DataMgr:
 
         if "grptrades" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["grptrades"] = dict()
-        
+
         filepath = "./generated/portfolio/trades.csv"
         filepath = os.path.join(grpInfo["path"], filepath)
         if not os.path.exists(filepath):
@@ -957,7 +975,7 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
@@ -974,10 +992,10 @@ class DataMgr:
 
             trdCache["trades"].append(tItem)
             trdCache["lastrow"] += 1
-        
+
         return trdCache["trades"]
 
-    def get_group_rounds(self, grpid:str):
+    def get_group_rounds(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
@@ -986,7 +1004,7 @@ class DataMgr:
 
         if "grprounds" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["grprounds"] = dict()
-        
+
         filepath = "./generated/portfolio/closes.csv"
         filepath = os.path.join(grpInfo["path"], filepath)
         if not os.path.exists(filepath):
@@ -1004,7 +1022,7 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
@@ -1022,10 +1040,10 @@ class DataMgr:
 
             trdCache["rounds"].append(tItem)
             trdCache["lastrow"] += 1
-        
+
         return trdCache["rounds"]
 
-    def get_group_funds(self, grpid:str):
+    def get_group_funds(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
@@ -1034,7 +1052,7 @@ class DataMgr:
 
         if "grpfunds" not in self.__grp_cache__[grpid]:
             self.__grp_cache__[grpid]["grpfunds"] = dict()
-        
+
         filepath = "./generated/portfolio/funds.csv"
         filepath = os.path.join(grpInfo["path"], filepath)
         if not os.path.exists(filepath):
@@ -1052,7 +1070,7 @@ class DataMgr:
         last_row = trdCache["lastrow"]
         lines = f.readlines()
         f.close()
-        lines = lines[1+last_row:]
+        lines = lines[1 + last_row:]
 
         for line in lines:
             cells = line.split(",")
@@ -1077,7 +1095,7 @@ class DataMgr:
 
             trdCache["funds"].append(tItem)
             trdCache["lastrow"] += 1
-        
+
         ret = trdCache["funds"].copy()
 
         if len(ret) > 0:
@@ -1116,13 +1134,13 @@ class DataMgr:
         f.close()
         return ret
 
-    def get_group_positions(self, grpid:str):
+    def get_group_positions(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return []
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-        
+
         filepath = "./generated/portfolio/datas.json"
         filepath = os.path.join(grpInfo["path"], filepath)
         if not os.path.exists(filepath):
@@ -1148,14 +1166,14 @@ class DataMgr:
             f.close()
             return ret
 
-    def get_group_performances(self, grpid:str):
+    def get_group_performances(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return {}
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-        
-        filepath = "./generated/portfolio/datas.json" 
+
+        filepath = "./generated/portfolio/datas.json"
         filepath = os.path.join(grpInfo["path"], filepath)
         if not os.path.exists(filepath):
             return {}
@@ -1172,39 +1190,39 @@ class DataMgr:
                     ay = code.split(".")
                     pid = code
                     if len(ay) > 2:
-                        if ay[1] not in ['IDX','STK','ETF']:
+                        if ay[1] not in ['IDX', 'STK', 'ETF']:
                             pid = ay[0] + "." + ay[1]
                         else:
                             pid = ay[0] + "." + ay[2]
 
                     if pid not in perf:
                         perf[pid] = {
-                            'closeprofit':0,
-                            'dynprofit':0
+                            'closeprofit': 0,
+                            'dynprofit': 0
                         }
 
                     perf[pid]['closeprofit'] += pItem['closeprofit']
                     perf[pid]['dynprofit'] += pItem['dynprofit']
-                    
+
             except:
                 pass
 
             f.close()
             return perf
 
-    def get_group_filters(self, grpid:str):
+    def get_group_filters(self, grpid: str):
         if grpid not in self.__config__["groups"]:
             return {}
 
         grpInfo = self.__config__["groups"][grpid]
         self.__check_cache__(grpid, grpInfo)
-        
+
         filepath = os.path.join(grpInfo["path"], 'filters.json')
         isYaml = False
         if not os.path.exists(filepath):
             filepath = os.path.join(grpInfo["path"], 'filters.yaml')
             isYaml = True
-        
+
         if not os.path.exists(filepath):
             filters = {}
         else:
@@ -1232,7 +1250,7 @@ class DataMgr:
         for sid in gpCache["strategies"]:
             if sid not in filters['strategy_filters']:
                 filters['strategy_filters'][sid] = False
-        
+
         for eid in gpCache["executers"]:
             if eid not in filters['executer_filters']:
                 filters['executer_filters'][eid] = False
@@ -1247,7 +1265,7 @@ class DataMgr:
 
         return filters
 
-    def set_group_filters(self, grpid:str, filters:dict):
+    def set_group_filters(self, grpid: str, filters: dict):
         if grpid not in self.__config__["groups"]:
             return False
 
@@ -1255,30 +1273,30 @@ class DataMgr:
         self.__check_cache__(grpid, grpInfo)
 
         realfilters = {
-            "strategy_filters":{},
-            "code_filters":{},
-            "executer_filters":{}
+            "strategy_filters": {},
+            "code_filters": {},
+            "executer_filters": {}
         }
 
         if "strategy_filters" in filters:
             for sid in filters["strategy_filters"]:
                 if filters["strategy_filters"][sid]:
                     realfilters["strategy_filters"][sid] = {
-                        "action":"redirect",
-                        "target":0
+                        "action": "redirect",
+                        "target": 0
                     }
 
         if "code_filters" in filters:
             for sid in filters["code_filters"]:
                 if filters["code_filters"][sid]:
                     realfilters["code_filters"][sid] = {
-                        "action":"redirect",
-                        "target":0
+                        "action": "redirect",
+                        "target": 0
                     }
 
         if "executer_filters" in filters:
             realfilters["executer_filters"] = filters["executer_filters"]
-        
+
         filepath = os.path.join(grpInfo["path"], 'filters.json')
         isYaml = False
         if not os.path.exists(filepath):
@@ -1292,4 +1310,3 @@ class DataMgr:
             f.write(json.dumps(realfilters, indent=4))
         f.close()
         return True
-            

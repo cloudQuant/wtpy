@@ -20,14 +20,21 @@ class ContractMgr:
         self.__prod_mgr__ = prodMgr
 
     def load(self, fname:str):
-        '''
+        """
         从文件加载品种信息
-        '''
-        f = open(fname, 'rb')
-        content = f.read()
-        f.close()
-        encoding = chardet.detect(content[:500])["encoding"]
-        content = content.decode(encoding)
+        """
+        try:
+            with open(fname, 'r', encoding="gbk") as f:
+                content = f.read()
+        except Exception as e:
+            print(f"{fname} 文件编码错误, 不是gbk格式", e)
+            with open(fname, 'r', encoding="utf-8") as f:
+                content = f.read()
+        # f = open(fname, 'rb')
+        # content = f.read()
+        # f.close()
+        # encoding = chardet.detect(content[:500])["encoding"]
+        # content = content.decode(encoding)
 
         if fname.lower().endswith(".yaml"):
             exchgMap = yaml.full_load(content)
