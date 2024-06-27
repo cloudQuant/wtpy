@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 class DequeRecord:
     __cursor__: int
     __size__: int

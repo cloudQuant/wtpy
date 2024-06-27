@@ -3,16 +3,18 @@ from flask import session, sessions
 
 from .WtLogger import WtLogger
 
-def get_param(json_data, key:str, type=str, defVal = ""):
+
+def get_param(json_data, key: str, func=str, defVal=""):
     if key not in json_data:
         return defVal
     else:
-        return type(json_data[key])
+        return func(json_data[key])
+
 
 class PushServer:
 
-    def __init__(self, app, dataMgr, logger:WtLogger = None):
-        sockio:SocketIO = SocketIO(app)
+    def __init__(self, app, dataMgr, logger: WtLogger = None):
+        sockio: SocketIO = SocketIO(app)
         self.sockio = sockio
         self.app = app
         self.dataMgr = dataMgr
@@ -34,18 +36,19 @@ class PushServer:
         def set_group(data):
             groupid = get_param(data, "groupid")
             if len(groupid) == 0:
-                emit('setgroup', {"result":-2, "message":"组合ID不能为空"})
+                emit('setgroup', {"result": -2, "message": "组合ID不能为空"})
             else:
-                session["groupid"] = groupid         
+                session["groupid"] = groupid
 
-    def run(self, port:int, host:str):
+    def run(self, port: int, host: str):
         self.sockio.run(self.app, host, port)
 
-    def notifyGrpLog(self, groupid, tag:str, time:int, message):
-        self.sockio.emit("notify", {"type":"gplog", "groupid":groupid, "tag":tag, "time":time, "message":message}, broadcast=True)
+    def notifyGrpLog(self, groupid, tag: str, time: int, message):
+        self.sockio.emit("notify", {"type": "gplog", "groupid": groupid, "tag": tag, "time": time, "message": message})
 
     def notifyGrpEvt(self, groupid, evttype):
-        self.sockio.emit("notify", {"type":"gpevt", "groupid":groupid, "evttype":evttype}, broadcast=True)
+        self.sockio.emit("notify", {"type": "gpevt", "groupid": groupid, "evttype": evttype})
 
     def notifyGrpChnlEvt(self, groupid, chnlid, evttype, data):
-        self.sockio.emit("notify", {"type":"chnlevt", "groupid":groupid, "channel":chnlid, "data":data, "evttype":evttype}, broadcast=True)
+        self.sockio.emit("notify",
+                         {"type": "chnlevt", "groupid": groupid, "channel": chnlid, "data": data, "evttype": evttype})

@@ -1,11 +1,11 @@
-'''
+"""
 Descripttion: 回测管理模块
 version: 
 Author: Wesley
 Date: 2021-08-11 14:03:33
 LastEditors: Wesley
 LastEditTime: 2021-09-02 14:18:50
-'''
+"""
 import os
 import json
 import subprocess
@@ -23,63 +23,71 @@ from wtpy import WtDtServo
 from .WtLogger import WtLogger
 from .EventReceiver import BtEventReceiver, BtEventSink
 
+
 def isWindows():
     if "windows" in platform.system().lower():
         return True
 
     return False
 
-def md5_str(v:str) -> str:
+
+def md5_str(v: str) -> str:
     return hashlib.md5(v.encode()).hexdigest()
 
-def gen_btid(user:str, straid:str) -> str:
+
+def gen_btid(user: str, straid: str) -> str:
     now = datetime.datetime.now()
     s = user + "_" + straid + "_" + str(now.timestamp())
     return md5_str(s)
 
-def gen_straid(user:str) -> str:
+
+def gen_straid(user: str) -> str:
     now = datetime.datetime.now()
     s = user + "_" + str(now.timestamp())
     return md5_str(s)
+
 
 class BtTaskSink:
 
     def __init__(self):
         pass
 
-    def on_start(self, user:str, straid:str, btid:str):
+    def on_start(self, user: str, straid: str, btid: str):
         pass
 
-    def on_stop(self, user:str, straid:str, btid:str):
+    def on_stop(self, user: str, straid: str, btid: str):
         pass
 
-    def on_state(self, user:str, straid:str, btid:str, statInfo:dict):
+    def on_state(self, user: str, straid: str, btid: str, statInfo: dict):
         pass
 
-    def on_fund(self, user:str, straid:str, btid:str, fundInfo:dict):
+    def on_fund(self, user: str, straid: str, btid: str, fundInfo: dict):
         pass
+
 
 class WtBtTask(BtEventSink):
-    '''
+    """
     回测任务类
-    '''
-    def __init__(self, user:str, straid:str, btid:str, folder:str, logger:WtLogger = None, sink:BtTaskSink = None):
+    """
+
+    def __init__(self, user: str, straid: str, btid: str, folder: str, logger: WtLogger = None,
+                 sink: BtTaskSink = None):
         self.user = user
         self.straid = straid
         self.btid = btid
         self.logger = logger
         self.folder = folder
         self.sink = sink
-        
+
         self._cmd_line = None
-        self._mq_url = "ipc:///wtpy/bt_%s.ipc" % (btid)
+        self._mq_url = "ipc:///wtpy/bt_%s.ipc" % btid
         self._ticks = 0
         self._state = 0
         self._procid = None
         self._evt_receiver = None
 
     def __check__(self):
-         while True:
+        while True:
             time.sleep(1)
             pids = psutil.pids()
             if psutil.pid_exists(self._procid):
@@ -102,14 +110,15 @@ class WtBtTask(BtEventSink):
             fullPath = os.path.join(self.folder, "runBT.py")
             if isWindows():
                 self._procid = subprocess.Popen([sys.executable, fullPath],  # 需要执行的文件路径
-                                cwd=self.folder, creationflags=subprocess.CREATE_NEW_CONSOLE).pid
+                                                cwd=self.folder, creationflags=subprocess.CREATE_NEW_CONSOLE).pid
             else:
                 self._procid = subprocess.Popen([sys.executable, fullPath],  # 需要执行的文件路径
-                                cwd=self.folder).pid
+                                                cwd=self.folder).pid
 
             self._cmd_line = sys.executable + " " + fullPath
-        except:
-            self.logger.info("回测%s启动异常" % (self.btid))
+        except Exception as e:
+            print(e)
+            self.logger.info("回测%s启动异常" % self.btid)
 
         self._state = 1
 
@@ -147,8 +156,8 @@ class WtBtTask(BtEventSink):
 
                         self.watcher = threading.Thread(target=self.__check__, name=self.btid, daemon=True)
                         self.watcher.run()
-                except:
-                    pass
+                except Exception as e:
+                    print(e)
             return False
 
         return True
@@ -160,22 +169,23 @@ class WtBtTask(BtEventSink):
     def on_finish(self):
         pass
 
-    def on_state(self, statInfo:dict):
+    def on_state(self, statInfo: dict):
         if self.sink is not None:
             self.sink.on_state(self.user, self.straid, self.btid, statInfo)
         print(statInfo)
 
-    def on_fund(self, fundInfo:dict):
+    def on_fund(self, fundInfo: dict):
         if self.sink is not None:
             self.sink.on_fund(self.user, self.straid, self.btid, fundInfo)
         print(fundInfo)
 
 
 class WtBtMon(BtTaskSink):
-    '''
+    """
     回测管理器
-    '''
-    def __init__(self, deploy_folder:str, dtServo:WtDtServo = None, logger:WtLogger = None):
+    """
+
+    def __init__(self, deploy_folder: str, dtServo: WtDtServo = None, logger: WtLogger = None):
         self.path = deploy_folder
         self.user_stras = dict()
         self.user_bts = dict()
@@ -187,7 +197,7 @@ class WtBtMon(BtTaskSink):
 
         self.__load_tasks__()
 
-    def __load_user_data__(self, user:str):
+    def __load_user_data__(self, user: str):
         folder = os.path.join(self.path, user)
         if not os.path.exists(folder):
             os.mkdir(folder)
@@ -211,8 +221,8 @@ class WtBtMon(BtTaskSink):
             os.mkdir(folder)
 
         obj = {
-            "strategies":{},
-            "backtests":{}
+            "strategies": {},
+            "backtests": {}
         }
 
         if user in self.user_stras:
@@ -227,10 +237,10 @@ class WtBtMon(BtTaskSink):
         f.close()
         return True
 
-    def get_strategies(self, user:str) -> list:
+    def get_strategies(self, user: str) -> list:
         if user not in self.user_stras:
             bSucc = self.__load_user_data__(user)
-        
+
             if not bSucc:
                 return None
 
@@ -239,7 +249,7 @@ class WtBtMon(BtTaskSink):
             ay.append(self.user_stras[user][straid])
         return ay
 
-    def add_strategy(self, user:str, name:str) -> dict:
+    def add_strategy(self, user: str, name: str) -> dict:
         if user not in self.user_stras:
             self.__load_user_data__(user)
 
@@ -248,9 +258,9 @@ class WtBtMon(BtTaskSink):
 
         straid = gen_straid(user)
         self.user_stras[user][straid] = {
-            "id":straid,
-            "name":name,
-            "perform":{
+            "id": straid,
+            "name": name,
+            "perform": {
                 "days": 0,
                 "total_return": 0,
                 "annual_return": 0,
@@ -277,7 +287,7 @@ class WtBtMon(BtTaskSink):
 
         return self.user_stras[user][straid]
 
-    def del_strategy(self, user:str, straid:str):
+    def del_strategy(self, user: str, straid: str):
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -298,8 +308,8 @@ class WtBtMon(BtTaskSink):
         self.user_stras[user].pop(straid)
         self.__save_user_data__(user)
         return True
-    
-    def has_strategy(self, user:str, straid:str, btid:str = None) -> bool:
+
+    def has_strategy(self, user: str, straid: str, btid: str = None) -> bool:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -311,7 +321,7 @@ class WtBtMon(BtTaskSink):
         else:
             return btid in self.user_bts[user]
 
-    def get_strategy_code(self, user:str, straid:str, btid:str = None) -> str:
+    def get_strategy_code(self, user: str, straid: str, btid: str = None) -> str:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -338,7 +348,7 @@ class WtBtMon(BtTaskSink):
             f.close()
             return content
 
-    def set_strategy_code(self, user:str, straid:str, content:str) -> bool:
+    def set_strategy_code(self, user: str, straid: str, content: str) -> bool:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -354,7 +364,7 @@ class WtBtMon(BtTaskSink):
         f.close()
         return True
 
-    def get_backtests(self, user:str, straid:str) -> list:
+    def get_backtests(self, user: str, straid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -370,7 +380,7 @@ class WtBtMon(BtTaskSink):
 
         return ay
 
-    def del_backtest(self, user:str, btid:str):
+    def del_backtest(self, user: str, btid: str):
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -386,7 +396,7 @@ class WtBtMon(BtTaskSink):
 
             self.__save_user_data__(user)
 
-    def get_bt_funds(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_funds(self, user: str, straid: str, btid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -425,10 +435,10 @@ class WtBtMon(BtTaskSink):
                 tItem["fee"] = float(cells[4])
 
             funds.append(tItem)
-        
+
         return funds
 
-    def get_bt_trades(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_trades(self, user: str, straid: str, btid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -473,10 +483,10 @@ class WtBtMon(BtTaskSink):
                 item["fee"] = float(cells[4])
 
             items.append(item)
-        
+
         return items
 
-    def get_bt_rounds(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_rounds(self, user: str, straid: str, btid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -517,10 +527,10 @@ class WtBtMon(BtTaskSink):
             }
 
             items.append(item)
-        
+
         return items
 
-    def get_bt_signals(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_signals(self, user: str, straid: str, btid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -556,10 +566,10 @@ class WtBtMon(BtTaskSink):
             }
 
             items.append(item)
-        
+
         return items
 
-    def get_bt_summary(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_summary(self, user: str, straid: str, btid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -582,7 +592,7 @@ class WtBtMon(BtTaskSink):
         obj = json.loads(content)
         return obj
 
-    def get_bt_state(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_state(self, user: str, straid: str, btid: str) -> list:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -605,7 +615,7 @@ class WtBtMon(BtTaskSink):
         obj = json.loads(content)
         return obj
 
-    def get_bt_state(self, user:str, straid:str, btid:str) -> dict:
+    def get_bt_state(self, user: str, straid: str, btid: str) -> dict:
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -629,7 +639,7 @@ class WtBtMon(BtTaskSink):
 
         return thisBts[btid]["state"]
 
-    def update_bt_state(self, user:str, straid:str, btid:str, stateObj:dict):
+    def update_bt_state(self, user: str, straid: str, btid: str, stateObj: dict):
         if user not in self.user_bts:
             bSucc = self.__load_user_data__(user)
 
@@ -642,7 +652,7 @@ class WtBtMon(BtTaskSink):
 
         thisBts[btid]["state"] = stateObj
 
-    def get_bt_kline(self, user:str, straid:str, btid:str) -> list:
+    def get_bt_kline(self, user: str, straid: str, btid: str) -> list:
         if self.dt_servo is None:
             return None
 
@@ -651,7 +661,7 @@ class WtBtMon(BtTaskSink):
 
             if not bSucc:
                 return None
-        
+
         btState = self.get_bt_state(user, straid, btid)
         if btState is None:
             return None
@@ -672,7 +682,7 @@ class WtBtMon(BtTaskSink):
                 if period[0] == 'd':
                     bar["time"] = realBar.date
                 else:
-                    bar["time"] = 1990*100000000 + realBar.time
+                    bar["time"] = 1990 * 100000000 + realBar.time
                     bar["bartime"] = bar["time"]
                     bar["open"] = realBar.open
                     bar["high"] = realBar.high
@@ -684,20 +694,21 @@ class WtBtMon(BtTaskSink):
 
         return thisBts[btid]["kline"]
 
-    def run_backtest(self, user:str, straid:str, fromTime:int, endTime:int, capital:float, slippage:int=0) -> dict:
+    def run_backtest(self, user: str, straid: str, fromTime: int, endTime: int, capital: float,
+                     slippage: int = 0) -> dict:
         if user not in self.user_bts:
             self.__load_user_data__(user)
 
         if user not in self.user_bts:
             self.user_bts[user] = dict()
-            
+
         btid = gen_btid(user, straid)
 
         # 生成回测目录
         folder = os.path.join(self.path, user, straid, "backtests")
         if not os.path.exists(folder):
             os.mkdir(folder)
-        
+
         folder = os.path.join(folder, btid)
         os.mkdir(folder)
 
@@ -743,10 +754,10 @@ class WtBtMon(BtTaskSink):
         f.close()
 
         btInfo = {
-            "id":btid,
-            "capital":capital,
-            "runtime":datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"),
-            "state":{
+            "id": btid,
+            "capital": capital,
+            "runtime": datetime.datetime.now().strftime("%Y.%m.%d %H:%M:%S"),
+            "state": {
                 "code": "",
                 "period": "",
                 "stime": fromTime,
@@ -754,7 +765,7 @@ class WtBtMon(BtTaskSink):
                 "progress": 0,
                 "elapse": 0
             },
-            "perform":{
+            "perform": {
                 "days": 0,
                 "total_return": 0,
                 "annual_return": 0,
@@ -781,17 +792,17 @@ class WtBtMon(BtTaskSink):
 
         # 这里还需要记录一下回测的任务，不然如果重启就恢复不了了
         taskInfo = {
-            "user":user,
-            "straid":straid,
-            "btid":btid,
-            "folder":folder
+            "user": user,
+            "straid": straid,
+            "btid": btid,
+            "folder": folder
         }
-        self.task_infos[btid]= taskInfo
+        self.task_infos[btid] = taskInfo
         self.__save_tasks__()
 
         return btInfo
 
-    def __update_bt_result__(self, user:str, straid:str, btid:str):
+    def __update_bt_result__(self, user: str, straid: str, btid: str):
         if user not in self.user_bts:
             self.__load_user_data__(user)
 
@@ -808,7 +819,7 @@ class WtBtMon(BtTaskSink):
         self.user_stras[user][straid]["perform"] = summaryObj
 
         self.__save_user_data__(user)
-    
+
     def __save_tasks__(self):
         obj = self.task_infos
 
@@ -840,18 +851,17 @@ class WtBtMon(BtTaskSink):
             else:
                 # 之前记录过测回测任务，执行完成了，要更新回测数据
                 self.__update_bt_result__(tInfo["user"], tInfo["straid"], btid)
-        
-        self.__save_tasks__()
-            
 
-    def on_start(self, user:str, straid:str, btid:str):
+        self.__save_tasks__()
+
+    def on_start(self, user: str, straid: str, btid: str):
         pass
 
-    def on_stop(self, user:str, straid:str, btid:str):
+    def on_stop(self, user: str, straid: str, btid: str):
         self.__update_bt_result__(user, straid, btid)
 
-    def on_state(self, user:str, straid:str, btid:str, statInfo:dict):
+    def on_state(self, user: str, straid: str, btid: str, statInfo: dict):
         self.user_bts[user][btid]["state"] = statInfo
 
-    def on_fund(self, user:str, straid:str, btid:str, fundInfo:dict):
+    def on_fund(self, user: str, straid: str, btid: str, fundInfo: dict):
         pass

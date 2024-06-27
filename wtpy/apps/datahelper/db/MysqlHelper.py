@@ -3,27 +3,29 @@ import pymysql
 import math
 import os
 
+
 class MysqlHelper(DBHelper):
-    def __init__(self, host:str, user:str, pwd:str, dbname:str, port:int=3306):
+    def __init__(self, host: str, user: str, pwd: str, dbname: str, port: int = 3306):
         self.params = {
-            "host":host,
-            'user':user,
-            'password':pwd,
-            'database':dbname,
-            'port':port
+            "host": host,
+            'user': user,
+            'password': pwd,
+            'database': dbname,
+            'port': port
         }
-        self.conn:pymysql.Connection = None
-    
+        self.conn: pymysql.Connection = None
+
     def __get_conn__(self):
         if self.conn is None:
             self.conn = pymysql.connect(**self.params)
-        
+
         try:
             self.conn.ping()
-        except:
+        except Exception as e:
+            print(e)
             self.conn = pymysql.connect(**self.params)
 
-        return self.conn 
+        return self.conn
 
     def initDB(self):
         paths = os.path.split(__file__)
@@ -39,24 +41,28 @@ class MysqlHelper(DBHelper):
             item = item.strip()
             if len(item) == 0:
                 continue
-            cursor.execute(item+";")
+            cursor.execute(item + ";")
         conn.commit()
         cursor.close()
 
-    def writeBars(self, bars:list, period="day"):
+    def writeBars(self, bars: list, period="day"):
         count = 0
         sql = ""
-        isDay = (period=='day')
-        tbname = "tb_kline_%s" % (period)
+        isDay = (period == 'day')
+        tbname = "tb_kline_%s" % period
         for curBar in bars:
             if count == 0:
                 if isDay:
-                    sql = "REPLACE INTO %s(exchange,`code`,`date`,open,high,low,close,settle,volume,turnover,interest,diff_interest) VALUES" % (tbname)
+                    sql = "REPLACE INTO %s(exchange,`code`,`date`,open,high,low,close,settle,volume,turnover,interest,diff_interest) VALUES" % (
+                        tbname)
                 else:
-                    sql = "REPLACE INTO %s(exchange,`code`,`date`,`time`,open,high,low,close,volume,turnover,interest,diff_interest) VALUES" % (tbname)
-            
+                    sql = "REPLACE INTO %s(exchange,`code`,`date`,`time`,open,high,low,close,volume,turnover,interest,diff_interest) VALUES" % (
+                        tbname)
+
             if isDay:
-                subsql = "('%s','%s',%d,%f,%f,%f,%f," % (curBar["exchange"], curBar["code"], curBar["date"], curBar["open"], curBar["high"], curBar["low"], curBar["close"])
+                subsql = "('%s','%s',%d,%f,%f,%f,%f," % (
+                    curBar["exchange"], curBar["code"], curBar["date"], curBar["open"], curBar["high"], curBar["low"],
+                    curBar["close"])
                 if "settle" in curBar:
                     subsql += str(curBar["settle"]) + ","
                 else:
@@ -80,8 +86,10 @@ class MysqlHelper(DBHelper):
                 subsql = subsql[:-1] + "),"
                 sql += subsql
             else:
-                barTime = (curBar["date"] - 19900000)*10000 + curBar["time"]
-                subsql = "('%s','%s',%d,%d,%f,%f,%f,%f," % (curBar["exchange"], curBar["code"], curBar["date"], barTime, curBar["open"], curBar["high"], curBar["low"], curBar["close"])
+                barTime = (curBar["date"] - 19900000) * 10000 + curBar["time"]
+                subsql = "('%s','%s',%d,%d,%f,%f,%f,%f," % (
+                    curBar["exchange"], curBar["code"], curBar["date"], barTime, curBar["open"], curBar["high"],
+                    curBar["low"], curBar["close"])
                 if "volume" in curBar:
                     subsql += str(curBar["volume"]) + ","
                 else:
@@ -120,8 +128,7 @@ class MysqlHelper(DBHelper):
             conn.commit()
             cursor.close()
 
-
-    def writeFactors(self, factors:dict):
+    def writeFactors(self, factors: dict):
         for exchg in factors:
             codelist = factors[exchg]
             for code in codelist:

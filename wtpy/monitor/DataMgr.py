@@ -190,7 +190,8 @@ class DataMgr:
                     else:
                         self.__grp_cache__[grpid]["executers"] = []
 
-                except:
+                except Exception as e:
+                    print(e)
                     self.__grp_cache__[grpid] = {
                         "strategies": [],
                         "channels": [],
@@ -213,7 +214,7 @@ class DataMgr:
         return ret
 
     def has_group(self, grpid: str):
-        return (grpid in self.__config__["groups"])
+        return grpid in self.__config__["groups"]
 
     def get_group(self, grpid: str) -> dict:
         if grpid in self.__config__["groups"]:
@@ -316,7 +317,7 @@ class DataMgr:
             self.__config__["groups"].pop(grpid)
 
             cur = self.__db_conn__.cursor()
-            cur.execute("DELETE FROM groups WHERE groupid='%s';" % (grpid))
+            cur.execute("DELETE FROM groups WHERE groupid='%s';" % grpid)
             self.__db_conn__.commit()
 
     def get_users(self):
@@ -365,7 +366,7 @@ class DataMgr:
             self.__config__["users"].pop(loginid)
 
             cur = self.__db_conn__.cursor()
-            cur.execute("DELETE FROM users WHERE loginid='%s';" % (loginid))
+            cur.execute("DELETE FROM users WHERE loginid='%s';" % loginid)
             self.__db_conn__.commit()
             return True
         else:
@@ -426,7 +427,7 @@ class DataMgr:
             self.__grp_cache__[grpid]["trades"] = dict()
 
         if straid not in self.__grp_cache__[grpid]["trades"]:
-            filepath = "./generated/outputs/%s/trades.csv" % (straid)
+            filepath = "./generated/outputs/%s/trades.csv" % straid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -483,7 +484,7 @@ class DataMgr:
             self.__grp_cache__[grpid]["funds"] = dict()
 
         if straid not in self.__grp_cache__[grpid]["funds"]:
-            filepath = "./generated/outputs/%s/funds.csv" % (straid)
+            filepath = "./generated/outputs/%s/funds.csv" % straid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -530,7 +531,7 @@ class DataMgr:
             last_date = 0
 
         # 这里再更新一条实时数据
-        filepath = "./generated/stradata/%s.json" % (straid)
+        filepath = "./generated/stradata/%s.json" % straid
         filepath = os.path.join(grpInfo["path"], filepath)
         f = open(filepath, "r")
         try:
@@ -546,7 +547,8 @@ class DataMgr:
                     "dynbalance": fund["total_profit"] + fund["total_dynprofit"] - fund["total_fees"],
                     "fee": fund["total_fees"]
                 })
-        except:
+        except Exception as e:
+            print(e)
             pass
         f.close()
 
@@ -566,7 +568,7 @@ class DataMgr:
             self.__grp_cache__[grpid]["signals"] = dict()
 
         if straid not in self.__grp_cache__[grpid]["signals"]:
-            filepath = "./generated/outputs/%s/signals.csv" % (straid)
+            filepath = "./generated/outputs/%s/signals.csv" % straid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -627,7 +629,7 @@ class DataMgr:
             self.__grp_cache__[grpid]["rounds"] = dict()
 
         if straid not in self.__grp_cache__[grpid]["rounds"]:
-            filepath = "./generated/outputs/%s/closes.csv" % (straid)
+            filepath = "./generated/outputs/%s/closes.csv" % straid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -679,7 +681,7 @@ class DataMgr:
             if straid not in self.__grp_cache__[grpid]["strategies"]:
                 return []
 
-            filepath = "./generated/stradata/%s.json" % (straid)
+            filepath = "./generated/stradata/%s.json" % straid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -702,13 +704,14 @@ class DataMgr:
                             dItem["volume"] = dItem["volumn"]
                             dItem.pop("volumn")
                         ret.append(dItem)
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
             f.close()
         else:
             for straid in self.__grp_cache__[grpid]["strategies"]:
-                filepath = "./generated/stradata/%s.json" % (straid)
+                filepath = "./generated/stradata/%s.json" % straid
                 filepath = os.path.join(grpInfo["path"], filepath)
                 if not os.path.exists(filepath):
                     return []
@@ -731,7 +734,8 @@ class DataMgr:
                                 dItem["volume"] = dItem["volumn"]
                                 dItem.pop("volumn")
                             ret.append(dItem)
-                except:
+                except Exception as e:
+                    print(e)
                     pass
 
                 f.close()
@@ -751,7 +755,7 @@ class DataMgr:
             self.__grp_cache__[grpid]["corders"] = dict()
 
         if chnlid not in self.__grp_cache__[grpid]["corders"]:
-            filepath = "./generated/traders/%s/orders.csv" % (chnlid)
+            filepath = "./generated/traders/%s/orders.csv" % chnlid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -805,7 +809,7 @@ class DataMgr:
             self.__grp_cache__[grpid]["ctrades"] = dict()
 
         if chnlid not in self.__grp_cache__[grpid]["ctrades"]:
-            filepath = "./generated/traders/%s/trades.csv" % (chnlid)
+            filepath = "./generated/traders/%s/trades.csv" % chnlid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -867,7 +871,7 @@ class DataMgr:
             if cid not in self.__grp_cache__[grpid]["channels"]:
                 continue
 
-            filepath = "./generated/traders/%s/rtdata.json" % (cid)
+            filepath = "./generated/traders/%s/rtdata.json" % cid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 return []
@@ -881,7 +885,8 @@ class DataMgr:
                 for pItem in positions:
                     pItem["channel"] = cid
                     ret.append(pItem)
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
             f.close()
@@ -911,7 +916,7 @@ class DataMgr:
             if cid not in self.__grp_cache__[grpid]["channels"]:
                 continue
 
-            filepath = "./generated/traders/%s/rtdata.json" % (cid)
+            filepath = "./generated/traders/%s/rtdata.json" % cid
             filepath = os.path.join(grpInfo["path"], filepath)
             if not os.path.exists(filepath):
                 continue
@@ -923,7 +928,8 @@ class DataMgr:
 
                 funds = json_data["funds"]
                 ret[cid] = funds
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
             f.close()
@@ -1129,7 +1135,8 @@ class DataMgr:
                     "mdminbalance": fund["minmd"]["dyn_balance"],
                     "mdmindate": fund["minmd"]["date"]
                 })
-        except:
+        except Exception as e:
+            print(e)
             pass
         f.close()
         return ret
@@ -1160,7 +1167,8 @@ class DataMgr:
                     for dItem in pItem["details"]:
                         dItem["code"] = pItem["code"]
                         ret.append(dItem)
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
             f.close()
@@ -1204,7 +1212,8 @@ class DataMgr:
                     perf[pid]['closeprofit'] += pItem['closeprofit']
                     perf[pid]['dynprofit'] += pItem['dynprofit']
 
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
             f.close()
@@ -1234,7 +1243,8 @@ class DataMgr:
                     filters = yaml.full_load(content)
                 else:
                     filters = json.loads(content)
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
             f.close()
@@ -1255,13 +1265,15 @@ class DataMgr:
             if eid not in filters['executer_filters']:
                 filters['executer_filters'][eid] = False
 
-        for id in filters['strategy_filters'].keys():
-            if type(filters['strategy_filters'][id]) != bool:
-                filters['strategy_filters'][id] = True
+        for key in filters['strategy_filters'].keys():
+            # if type(filters['strategy_filters'][id]) != bool:
+            if not isinstance(filters['strategy_filters'][key], bool):
+                filters['strategy_filters'][key] = True
 
-        for id in filters['code_filters'].keys():
-            if type(filters['code_filters'][id]) != bool:
-                filters['code_filters'][id] = True
+        for key in filters['code_filters'].keys():
+            # if type(filters['code_filters'][id]) != bool:
+            if not isinstance(filters['code_filters'][key], bool):
+                filters['code_filters'][key] = True
 
         return filters
 

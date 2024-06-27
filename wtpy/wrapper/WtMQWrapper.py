@@ -1,30 +1,31 @@
-'''
+"""
 Descripttion: Automatically generated file comment
 version: 
 Author: Wesley
 Date: 2021-07-27 09:53:43
 LastEditors: Wesley
 LastEditTime: 2021-08-13 15:35:07
-'''
+"""
 from ctypes import c_char, cdll, CFUNCTYPE, c_uint32, c_bool, c_void_p, c_char_p, c_ulong
 from .PlatformHelper import PlatformHelper as ph
 from wtpy.WtUtilDefs import singleton
 import os
 
-CB_ON_MSG = CFUNCTYPE(c_void_p,  c_uint32, c_char_p, c_char_p, c_uint32)
-CB_ON_LOG = CFUNCTYPE(c_void_p,  c_uint32, c_char_p, c_bool)
+CB_ON_MSG = CFUNCTYPE(c_void_p, c_uint32, c_char_p, c_char_p, c_uint32)
+CB_ON_LOG = CFUNCTYPE(c_void_p, c_uint32, c_char_p, c_bool)
+
 
 # Python对接C接口的库
 @singleton
 class WtMQWrapper:
-    '''
+    """
     Wt平台数据组件C接口底层对接模块
-    '''
+    """
 
     # api可以作为公共变量
     api = None
     ver = "Unknown"
-    
+
     # 构造函数，传入动态库名
     def __init__(self, mgr):
         self._mgr = mgr
@@ -40,28 +41,27 @@ class WtMQWrapper:
         self.api.create_server.argtypes = [c_char_p]
         self.api.create_server.restype = c_ulong
 
-    def on_mq_log(self, id:int, message:str, bServer:bool):
+    def on_mq_log(self, ids: int, message: str, bServer: bool):
         print(message.decode())
 
-    def create_server(self, url:str):
+    def create_server(self, url: str):
         return self.api.create_server(bytes(url, 'utf-8'))
 
-    def destroy_server(self, id:int):
-        self.api.destroy_server(id)
+    def destroy_server(self, ids: int):
+        self.api.destroy_server(ids)
 
-    def publish_message(self, id:int, topic:str, message:str):
+    def publish_message(self, ids: int, topic: str, message: str):
         message = bytes(message, 'utf-8')
-        self.api.publish_message(id, bytes(topic, 'utf-8'), message, len(message))
+        self.api.publish_message(ids, bytes(topic, 'utf-8'), message, len(message))
 
-    def create_client(self, url:str, cbMsg:CB_ON_MSG):
+    def create_client(self, url: str, cbMsg: CB_ON_MSG):
         return self.api.create_client(bytes(url, 'utf-8'), cbMsg)
 
-    def destroy_client(self, id:int):
-        self.api.destroy_client(id)
+    def destroy_client(self, ids: int):
+        self.api.destroy_client(ids)
 
-    def subcribe_topic(self, id:int, topic:str):
-        self.api.subscribe_topic(id, bytes(topic, 'utf-8'))
+    def subcribe_topic(self, ids: int, topic: str):
+        self.api.subscribe_topic(ids, bytes(topic, 'utf-8'))
 
-    def start_client(self, id:int):
-        self.api.start_client(id)
-
+    def start_client(self, ids: int):
+        self.api.start_client(ids)

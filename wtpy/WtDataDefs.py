@@ -3,6 +3,7 @@ from wtpy.WtCoreDefs import WTSBarStruct, WTSTickStruct
 import numpy as np
 import pandas as pd
 
+
 class WtTickRecords(DequeRecord):
     def __init__(self, size: int):
         super().__init__(size=size, fields={
@@ -82,7 +83,7 @@ class WtTickRecords(DequeRecord):
     def from_struct(self, data: WTSTickStruct):
         return self.append(
             (
-                np.uint64(data.action_date)*1000000000+data.action_time,
+                np.uint64(data.action_date) * 1000000000 + data.action_time,
                 data.exchg,
                 data.code,
                 data.price,
@@ -118,7 +119,7 @@ class WtOrdQueRecords(DequeRecord):
             'time': np.uint64,
             'exchg': 'U16',
             'code': 'U32',
-            
+
             'trading_date': np.uint32,
             'action_date': np.uint32,
             'action_time': np.uint32,
@@ -127,8 +128,9 @@ class WtOrdQueRecords(DequeRecord):
             'price': np.double,
             'order_items': np.uint32,
             'qsize': np.uint32,
-            'volumes': np.uint32*50
+            'volumes': np.uint32 * 50
         })
+
 
 class WtOrdDtlRecords(DequeRecord):
     def __init__(self, size: int):
@@ -136,7 +138,7 @@ class WtOrdDtlRecords(DequeRecord):
             'time': np.uint64,
             'exchg': 'U16',
             'code': 'U32',
-            
+
             'trading_date': np.uint32,
             'action_date': np.uint32,
             'action_time': np.uint32,
@@ -147,6 +149,7 @@ class WtOrdDtlRecords(DequeRecord):
             'volume': np.uint32,
             'otype': np.int32
         })
+
 
 class WtTransRecords(DequeRecord):
     def __init__(self, size: int):
@@ -168,6 +171,7 @@ class WtTransRecords(DequeRecord):
             'ask_order': np.int32,
             'bid_order': np.int32
         })
+
 
 class WtBarRecords(DequeRecord):
     def __init__(self, size: int):
@@ -209,7 +213,7 @@ class WtBarRecords(DequeRecord):
     def bartimes(self) -> np.ndarray:
         return self.bartime
 
-    def get_bar(self, iLoc:int = -1) -> dict:
+    def get_bar(self, iLoc: int = -1) -> dict:
         return self[iLoc]
 
     def to_df(self) -> pd.DataFrame:

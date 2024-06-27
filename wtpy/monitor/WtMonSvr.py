@@ -1,5 +1,5 @@
 from flask import Flask, session, redirect, request, make_response
-from flask_compress  import Compress
+from flask_compress import Compress
 import json
 import yaml
 import datetime
@@ -16,53 +16,58 @@ from .WatchDog import WatchDog, WatcherSink
 from .WtBtMon import WtBtMon
 from wtpy import WtDtServo
 
+
 def pack_rsp(obj):
     rsp = make_response(json.dumps(obj))
-    rsp.headers["content-type"]= "text/json;charset=utf-8"
+    rsp.headers["content-type"] = "text/json;charset=utf-8"
     return rsp
+
 
 def parse_data():
     try:
         data = request.get_data()
         json_data = json.loads(data.decode("utf-8"))
-        return True,json_data
-    except:
+        return True, json_data
+    except Exception as e:
+        print(e)
         return False, {
             "result": -998,
             "message": "请求数据解析失败"
         }
 
-def get_param(json_data, key:str, type=str, defVal = ""):
+
+def get_param(json_data, key: str, func=str, defVal=""):
     if key not in json_data:
         return defVal
     else:
-        return type(json_data[key])
+        return func(json_data[key])
 
-#获取文件最后N行的函数
-def get_tail(filename, N:int = 100, encoding="GBK") :
+
+# 获取文件最后N行的函数
+def get_tail(filename, N: int = 100, encoding="GBK"):
     filesize = os.path.getsize(filename)
     blocksize = 10240
     dat_file = open(filename, 'r', encoding=encoding)
     last_line = ""
-    if filesize > blocksize :
+    if filesize > blocksize:
         maxseekpoint = (filesize // blocksize)
-        dat_file.seek((maxseekpoint-1)*blocksize)
-    elif filesize :
+        dat_file.seek((maxseekpoint - 1) * blocksize)
+    elif filesize:
         dat_file.seek(0, 0)
-    lines =  dat_file.readlines()
-    if lines :
+    lines = dat_file.readlines()
+    if lines:
         last_line = lines[-N:]
     dat_file.close()
     return ''.join(last_line), len(last_line)
+
 
 def check_auth():
     usrInfo = session.get("userinfo")
     # session里没有用户信息
     if usrInfo is None:
-        
         return False, {
-            "result":-999,
-            "message":"请先登录"
+            "result": -999,
+            "message": "请先登录"
         }
 
     # session里有用户信息，则要读取
@@ -70,45 +75,46 @@ def check_auth():
     now = datetime.datetime.now().replace(tzinfo=pytz.timezone('UTC')).strftime("%Y.%m.%d %H:%M:%S")
     if now > exptime:
         return False, {
-            "result":-999,
-            "message":"登录已超时，请重新登录"
+            "result": -999,
+            "message": "登录已超时，请重新登录"
         }
 
     return True, usrInfo
 
-def get_cfg_tree(root:str, name:str):
+
+def get_cfg_tree(root: str, name: str):
     if not os.path.exists(root):
         return {
-            "label":name,
-            "path":root,
-            "exist":False,
-            "isfile":False,
-            "children":[]
+            "label": name,
+            "path": root,
+            "exist": False,
+            "isfile": False,
+            "children": []
         }
 
     if os.path.isfile(root):
         return {
-            "label":name,
-            "path":root,
-            "exist":False,
-            "isfile":True
+            "label": name,
+            "path": root,
+            "exist": False,
+            "isfile": True
         }
 
     ret = {
-        "label":name,
-        "path":root,
-        "exist":True,
-        "isfile":False,
-        "children":[]
+        "label": name,
+        "path": root,
+        "exist": True,
+        "isfile": False,
+        "children": []
     }
 
     filepath = os.path.join(root, "run.py")
     ret['children'].append({
-        "label":"run.py",
-        "path":filepath,
-        "exist":True,
-        "isfile":True,
-        "children":[]
+        "label": "run.py",
+        "path": filepath,
+        "exist": True,
+        "isfile": True,
+        "children": []
     })
 
     filepath = os.path.join(root, "config.json")
@@ -118,11 +124,11 @@ def get_cfg_tree(root:str, name:str):
         isYaml = True
 
     ret['children'].append({
-        "label":"config.yaml" if isYaml else "config.json",
-        "path":filepath,
-        "exist":True,
-        "isfile":True,
-        "children":[]
+        "label": "config.yaml" if isYaml else "config.json",
+        "path": filepath,
+        "exist": True,
+        "isfile": True,
+        "children": []
     })
 
     f = open(filepath, "r")
@@ -137,72 +143,76 @@ def get_cfg_tree(root:str, name:str):
         cfgObj = yaml.full_load(content)
     else:
         cfgObj = json.loads(content)
-        
+
     if "executers" in cfgObj:
         filename = cfgObj["executers"]
-        if type(filename) == str:
+        # if type(filename) == str:
+        if isinstance(filename, str):
             filepath = os.path.join(root, filename)
             ret['children'].append({
-                "label":filename,
-                "path":filepath,
-                "exist":True,
-                "isfile":True,
-                "children":[]
+                "label": filename,
+                "path": filepath,
+                "exist": True,
+                "isfile": True,
+                "children": []
             })
 
     if "parsers" in cfgObj:
         filename = cfgObj["parsers"]
-        if type(filename) == str:
+        # if type(filename) == str:
+        if isinstance(filename, str):
             filepath = os.path.join(root, filename)
             ret['children'].append({
-                "label":filename,
-                "path":filepath,
-                "exist":True,
-                "isfile":True,
-                "children":[]
+                "label": filename,
+                "path": filepath,
+                "exist": True,
+                "isfile": True,
+                "children": []
             })
 
     if "traders" in cfgObj:
         filename = cfgObj["traders"]
-        if type(filename) == str:
+        # if type(filename) == str:
+        if isinstance(filename, str):
             filepath = os.path.join(root, filename)
             ret['children'].append({
-                "label":filename,
-                "path":filepath,
-                "exist":True,
-                "isfile":True,
-                "children":[]
+                "label": filename,
+                "path": filepath,
+                "exist": True,
+                "isfile": True,
+                "children": []
             })
 
     filepath = os.path.join(root, 'generated')
     ret["children"].append(get_path_tree(filepath, 'generated', True))
-        
+
     return ret
 
-def get_path_tree(root:str, name:str, hasFile:bool = True):
+
+def get_path_tree(root: str, name: str, hasFile: bool = True):
     if not os.path.exists(root):
         return {
-            "label":name,
-            "path":root,
-            "exist":False,
-            "isfile":False,
-            "children":[]
+            "label": name,
+            "path": root,
+            "exist": False,
+            "isfile": False,
+            "children": []
         }
 
     if os.path.isfile(root):
         return {
-            "label":name,
-            "path":root,
-            "exist":False,
-            "isfile":True
+            "label": name,
+            "path": root,
+            "exist": False,
+            "isfile": True
         }
 
     ret = {
-        "label":name,
-        "path":root,
-        "exist":True,
-        "isfile":False,
-        "children":[]
+        "label": name,
+        "path": root,
+        "exist": True,
+        "isfile": False,
+        "children": []
     }
     files = os.listdir(root, )
     for filename in files:
@@ -217,10 +227,10 @@ def get_path_tree(root:str, name:str, hasFile:bool = True):
                 continue
             else:
                 ret["children"].append({
-                    "label":filename,
-                    "path":filepath,
-                    "exist":True,
-                    "isfile":True})
+                    "label": filename,
+                    "path": filepath,
+                    "exist": True,
+                    "isfile": True})
         else:
             ret["children"].append(get_path_tree(filepath, filename, hasFile))
 
@@ -235,24 +245,26 @@ def get_path_tree(root:str, name:str, hasFile:bool = True):
         ret["children"] = ay
     return ret
 
+
 class WtMonSink:
 
     def __init__(self):
         return
 
-    def notify(self, level:str, msg:str):
+    def notify(self, level: str, msg: str):
         return
+
 
 class WtMonSvr(WatcherSink):
 
-    def __init__(self, static_folder:str="", static_url_path="/", deploy_dir="C:/", sink:WtMonSink = None):
-        '''
+    def __init__(self, static_folder: str = "", static_url_path="/", deploy_dir="C:/", sink: WtMonSink = None):
+        """
         WtMonSvr构造函数
 
         @static_folder      静态文件根目录
         @static_url_path    静态文件访问路径
         @deploy_dir         实盘部署目录
-        '''
+        """
         if len(static_folder) == 0:
             static_folder = 'static'
 
@@ -262,13 +274,14 @@ class WtMonSvr(WatcherSink):
         # 数据管理器，主要用于缓存各组合的数据
         self.__data_mgr__ = DataMgr('data.db', logger=self.logger)
 
-        self.__bt_mon__:WtBtMon = None
-        self.__dt_servo__:WtDtServo = None
+        self.__bt_mon__: WtBtMon = None
+        self.__dt_servo__: WtDtServo = None
 
         # 看门狗模块，主要用于调度各个组合启动关闭
         self._dog = WatchDog(sink=self, db=self.__data_mgr__.get_db(), logger=self.logger)
 
-        app = Flask(__name__, instance_relative_config=True, static_folder=static_folder, static_url_path=static_url_path)
+        app = Flask(__name__, instance_relative_config=True, static_folder=static_folder,
+                    static_url_path=static_url_path)
         app.secret_key = "!@#$%^&*()"
         Compress(app)
         # app.debug = True
@@ -281,24 +294,24 @@ class WtMonSvr(WatcherSink):
 
         self.init_mgr_apis(app)
 
-    def set_bt_mon(self, btMon:WtBtMon):
-        '''
+    def set_bt_mon(self, btMon: WtBtMon):
+        """
         设置回测管理器
 
         @btMon      回测管理器WtBtMon实例
-        '''
+        """
         self.__bt_mon__ = btMon
         self.init_bt_apis(self.app)
 
-    def set_dt_servo(self, dtServo:WtDtServo):
-        '''
+    def set_dt_servo(self, dtServo: WtDtServo):
+        """
         设置DtServo
 
         @dtServo    本地数据伺服WtDtServo实例
-        '''
+        """
         self.__dt_servo__ = dtServo
 
-    def init_bt_apis(self, app:Flask):
+    def init_bt_apis(self, app: Flask):
 
         # 拉取K线数据
         @app.route("/bt/qrybars", methods=["POST"])
@@ -313,17 +326,17 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             if self.__dt_servo__ is None:
                 ret = {
-                    "result":-2,
-                    "message":"没有配置数据伺服"
+                    "result": -2,
+                    "message": "没有配置数据伺服"
                 }
                 return pack_rsp(ret)
 
@@ -333,24 +346,24 @@ class WtMonSvr(WatcherSink):
             dataCount = get_param(json_data, "count", int, None)
             endTime = get_param(json_data, "etime", int)
 
-            bars = self.__dt_servo__.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
+            bars = self.__dt_servo__.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount,
+                                              endTime=endTime)
             if bars is None:
                 ret = {
-                    "result":-2,
-                    "message":"Data not found"
+                    "result": -2,
+                    "message": "Data not found"
                 }
             else:
-                bar_list = [curBar.to_dict  for curBar in bars]
-                
+                bar_list = [curBar.to_dict for curBar in bars]
+
                 ret = {
-                    "result":0,
-                    "message":"Ok",
+                    "result": 0,
+                    "message": "Ok",
                     "bars": bar_list
                 }
 
             return pack_rsp(ret)
 
-        
         # 拉取用户策略列表
         @app.route("/bt/qrystras", methods=["POST"])
         def qry_my_stras():
@@ -364,16 +377,16 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             ret = {
-                "result":0,
-                "message":"OK",
+                "result": 0,
+                "message": "OK",
                 "strategies": self.__bt_mon__.get_strategies(user)
             }
 
@@ -392,31 +405,31 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             straid = get_param(json_data, "straid")
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略代码不存在"
+                        "result": -2,
+                        "message": "策略代码不存在"
                     }
                 else:
                     content = self.__bt_mon__.get_strategy_code(user, straid)
                     ret = {
-                        "result":0,
-                        "message":"OK",
-                        "content":content
+                        "result": 0,
+                        "message": "OK",
+                        "content": content
                     }
 
             return pack_rsp(ret)
@@ -434,10 +447,10 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
@@ -445,33 +458,33 @@ class WtMonSvr(WatcherSink):
             content = get_param(json_data, "content")
             if len(content) == 0 or len(straid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID和代码不能为空"
+                    "result": -2,
+                    "message": "策略ID和代码不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = self.__bt_mon__.set_strategy_code(user, straid, content)
                     if ret:
                         ret = {
-                            "result":0,
-                            "message":"OK"
+                            "result": 0,
+                            "message": "OK"
                         }
                     else:
                         ret = {
-                            "result":-3,
-                            "message":"保存策略代码失败"
+                            "result": -3,
+                            "message": "保存策略代码失败"
                         }
 
             return pack_rsp(ret)
@@ -489,38 +502,38 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             name = get_param(json_data, "name")
             if len(name) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略名称不能为空"
+                    "result": -2,
+                    "message": "策略名称不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-3,
-                    "message":"回测管理器未配置"
+                    "result": -3,
+                    "message": "回测管理器未配置"
                 }
                 return pack_rsp(ret)
 
             straInfo = self.__bt_mon__.add_strategy(user, name)
             if straInfo is None:
                 ret = {
-                    "result":-4,
-                    "message":"策略添加失败"
+                    "result": -4,
+                    "message": "策略添加失败"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"OK",
+                    "result": 0,
+                    "message": "OK",
                     "strategy": straInfo
                 }
 
@@ -539,43 +552,43 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             straid = get_param(json_data, "straid")
             if len(straid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID不能为空"
+                    "result": -2,
+                    "message": "策略ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = self.__bt_mon__.del_strategy(user, straid)
                     if ret:
                         ret = {
-                            "result":0,
-                            "message":"OK"
+                            "result": 0,
+                            "message": "OK"
                         }
                     else:
                         ret = {
-                            "result":-3,
-                            "message":"保存策略代码失败"
+                            "result": -3,
+                            "message": "保存策略代码失败"
                         }
 
             return pack_rsp(ret)
@@ -593,37 +606,37 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             straid = get_param(json_data, "straid")
             if len(straid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID不能为空"
+                    "result": -2,
+                    "message": "策略ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = {
-                        "result":0,
-                        "message":"OK",
-                        "backtests":self.__bt_mon__.get_backtests(user, straid)
+                        "result": 0,
+                        "message": "OK",
+                        "backtests": self.__bt_mon__.get_backtests(user, straid)
                     }
 
             return pack_rsp(ret)
@@ -641,10 +654,10 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
@@ -652,27 +665,27 @@ class WtMonSvr(WatcherSink):
             btid = get_param(json_data, "btid")
             if len(straid) == 0 or len(btid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID和回测ID不能为空"
+                    "result": -2,
+                    "message": "策略ID和回测ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = {
-                        "result":0,
-                        "message":"OK",
-                        "signals":self.__bt_mon__.get_bt_signals(user, straid, btid)
+                        "result": 0,
+                        "message": "OK",
+                        "signals": self.__bt_mon__.get_bt_signals(user, straid, btid)
                     }
 
             return pack_rsp(ret)
@@ -690,31 +703,31 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
             btid = get_param(json_data, "btid")
             if len(btid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"回测ID不能为空"
+                    "result": -2,
+                    "message": "回测ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 self.__bt_mon__.del_backtest(user, btid)
                 ret = {
-                    "result":0,
-                    "message":"OK"
+                    "result": 0,
+                    "message": "OK"
                 }
 
             return pack_rsp(ret)
@@ -732,10 +745,10 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
@@ -743,27 +756,27 @@ class WtMonSvr(WatcherSink):
             btid = get_param(json_data, "btid")
             if len(straid) == 0 or len(btid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID和回测ID不能为空"
+                    "result": -2,
+                    "message": "策略ID和回测ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = {
-                        "result":0,
-                        "message":"OK",
-                        "trades":self.__bt_mon__.get_bt_trades(user, straid, btid)
+                        "result": 0,
+                        "message": "OK",
+                        "trades": self.__bt_mon__.get_bt_trades(user, straid, btid)
                     }
 
             return pack_rsp(ret)
@@ -781,10 +794,10 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
@@ -792,27 +805,27 @@ class WtMonSvr(WatcherSink):
             btid = get_param(json_data, "btid")
             if len(straid) == 0 or len(btid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID和回测ID不能为空"
+                    "result": -2,
+                    "message": "策略ID和回测ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = {
-                        "result":0,
-                        "message":"OK",
-                        "funds":self.__bt_mon__.get_bt_funds(user, straid, btid)
+                        "result": 0,
+                        "message": "OK",
+                        "funds": self.__bt_mon__.get_bt_funds(user, straid, btid)
                     }
 
             return pack_rsp(ret)
@@ -830,10 +843,10 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
@@ -841,27 +854,27 @@ class WtMonSvr(WatcherSink):
             btid = get_param(json_data, "btid")
             if len(straid) == 0 or len(btid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID和回测ID不能为空"
+                    "result": -2,
+                    "message": "策略ID和回测ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
                     ret = {
-                        "result":0,
-                        "message":"OK",
-                        "rounds":self.__bt_mon__.get_bt_rounds(user, straid, btid)
+                        "result": 0,
+                        "message": "OK",
+                        "rounds": self.__bt_mon__.get_bt_rounds(user, straid, btid)
                     }
 
             return pack_rsp(ret)
@@ -879,10 +892,10 @@ class WtMonSvr(WatcherSink):
 
             user = userInfo["loginid"]
             role = userInfo["role"]
-            if role not in ['researcher','superman']:
+            if role not in ['researcher', 'superman']:
                 ret = {
-                    "result":-1,
-                    "message":"没有权限"
+                    "result": -1,
+                    "message": "没有权限"
                 }
                 return pack_rsp(ret)
 
@@ -895,39 +908,39 @@ class WtMonSvr(WatcherSink):
             slippage = get_param(json_data, "slippage", int, defVal=0)
             if len(straid) == 0:
                 ret = {
-                    "result":-2,
-                    "message":"策略ID不能为空"
+                    "result": -2,
+                    "message": "策略ID不能为空"
                 }
                 return pack_rsp(ret)
 
             if fromtime > endtime:
-                fromtime,endtime = endtime,fromtime
+                fromtime, endtime = endtime, fromtime
 
-            fromtime = fromtime*10000 + 900
-            endtime = endtime*10000 + 1515
+            fromtime = fromtime * 10000 + 900
+            endtime = endtime * 10000 + 1515
 
             if self.__bt_mon__ is None:
                 ret = {
-                    "result":-1,
-                    "message":"回测管理器未配置"
+                    "result": -1,
+                    "message": "回测管理器未配置"
                 }
             else:
                 if not self.__bt_mon__.has_strategy(user, straid):
                     ret = {
-                        "result":-2,
-                        "message":"策略不存在"
+                        "result": -2,
+                        "message": "策略不存在"
                     }
                 else:
-                    btInfo = self.__bt_mon__.run_backtest(user,straid,fromtime,endtime,capital,slippage)
+                    btInfo = self.__bt_mon__.run_backtest(user, straid, fromtime, endtime, capital, slippage)
                     ret = {
-                        "result":0,
-                        "message":"OK",
+                        "result": 0,
+                        "message": "OK",
                         "backtest": btInfo
                     }
 
             return pack_rsp(ret)
 
-    def init_mgr_apis(self, app:Flask):
+    def init_mgr_apis(self, app: Flask):
 
         @app.route("/console", methods=["GET"])
         def stc_console_index():
@@ -937,11 +950,11 @@ class WtMonSvr(WatcherSink):
         def stc_mobile_index():
             return redirect("./mobile/index.html")
 
+        """下面是API接口的编写"""
 
-        '''下面是API接口的编写'''
         @app.route("/mgr/login", methods=["POST"])
         def cmd_login():
-            
+
             bSucc, json_data = parse_data()
             if not bSucc:
                 return pack_rsp(json_data)
@@ -952,43 +965,44 @@ class WtMonSvr(WatcherSink):
 
                 if len(user) == 0 or len(pwd) == 0:
                     ret = {
-                        "result":-1,
-                        "message":"用户名和密码不能为空"
+                        "result": -1,
+                        "message": "用户名和密码不能为空"
                     }
                 else:
-                    encpwd = hashlib.md5((user+pwd).encode("utf-8")).hexdigest()
+                    encpwd = hashlib.md5((user + pwd).encode("utf-8")).hexdigest()
                     now = datetime.datetime.now()
                     usrInf = self.__data_mgr__.get_user(user)
                     if usrInf is None:
                         ret = {
-                            "result":-1,
-                            "message":"用户不存在"
+                            "result": -1,
+                            "message": "用户不存在"
                         }
                     elif encpwd != usrInf["passwd"]:
                         ret = {
-                            "result":-1,
-                            "message":"登录密码错误"
+                            "result": -1,
+                            "message": "登录密码错误"
                         }
                     else:
                         usrInf.pop("passwd")
-                        usrInf["loginip"]=request.remote_addr
-                        usrInf["logintime"]=now.strftime("%Y/%m/%d %H:%M:%S")
+                        usrInf["loginip"] = request.remote_addr
+                        usrInf["logintime"] = now.strftime("%Y/%m/%d %H:%M:%S")
 
-                        exptime = now + datetime.timedelta(minutes=360)  #360分钟令牌超时
+                        exptime = now + datetime.timedelta(minutes=360)  # 360分钟令牌超时
                         session["userinfo"] = usrInf
-                        session["expiretime"] = exptime.replace(tzinfo=pytz.timezone('UTC')).strftime("%Y.%m.%d %H:%M:%S")
+                        session["expiretime"] = exptime.replace(tzinfo=pytz.timezone('UTC')).strftime(
+                            "%Y.%m.%d %H:%M:%S")
 
                         ret = {
-                            "result":0,
-                            "message":"Ok",
-                            "userinfo":usrInf
+                            "result": 0,
+                            "message": "Ok",
+                            "userinfo": usrInf
                         }
 
                         self.__data_mgr__.log_action(usrInf, "login", json.dumps(request.headers.get('User-Agent')))
             else:
                 ret = {
-                    "result":-1,
-                    "message":"请求处理出现异常",
+                    "result": -1,
+                    "message": "请求处理出现异常",
                 }
                 if session.get("userinfo") is not None:
                     session.pop("userinfo")
@@ -1011,37 +1025,37 @@ class WtMonSvr(WatcherSink):
 
             if len(oldpwd) == 0 or len(newpwd) == 0:
                 ret = {
-                    "result":-1,
-                    "message":"新旧密码都不能为空"
+                    "result": -1,
+                    "message": "新旧密码都不能为空"
                 }
             else:
                 user = adminInfo["loginid"]
-                oldencpwd = hashlib.md5((user+oldpwd).encode("utf-8")).hexdigest()
+                oldencpwd = hashlib.md5((user + oldpwd).encode("utf-8")).hexdigest()
                 usrInf = self.__data_mgr__.get_user(user)
                 if usrInf is None:
                     ret = {
-                        "result":-1,
-                        "message":"用户不存在"
+                        "result": -1,
+                        "message": "用户不存在"
                     }
                 else:
                     if oldencpwd != usrInf["passwd"]:
                         ret = {
-                            "result":-1,
-                            "message":"旧密码错误"
+                            "result": -1,
+                            "message": "旧密码错误"
                         }
                     else:
                         if 'builtin' in usrInf and usrInf["builtin"]:
-                            #如果是内建账号要改密码，则先添加用户
+                            # 如果是内建账号要改密码，则先添加用户
                             usrInf["passwd"] = oldpwd
                             self.__data_mgr__.add_user(usrInf, user)
                             print("%s是内建账户，自动添加到数据库中" % user)
 
-                        newencpwd = hashlib.md5((user+newpwd).encode("utf-8")).hexdigest()
+                        newencpwd = hashlib.md5((user + newpwd).encode("utf-8")).hexdigest()
                         self.__data_mgr__.mod_user_pwd(user, newencpwd, user)
 
                         ret = {
-                            "result":0,
-                            "message":"Ok"
+                            "result": 0,
+                            "message": "Ok"
                         }
 
             return pack_rsp(ret)
@@ -1072,36 +1086,36 @@ class WtMonSvr(WatcherSink):
 
             if len(id) == 0 or len(name) == 0 or len(gtype) == 0:
                 ret = {
-                    "result":-1,
-                    "message":"组合ID、名称、类型都不能为空"
+                    "result": -1,
+                    "message": "组合ID、名称、类型都不能为空"
                 }
             elif not os.path.exists(path) or not os.path.isdir(path):
                 ret = {
-                    "result":-2,
-                    "message":"组合运行目录不正确"
+                    "result": -2,
+                    "message": "组合运行目录不正确"
                 }
             elif action == "add" and self.__data_mgr__.has_group(id):
                 ret = {
-                    "result":-3,
-                    "message":"组合ID不能重复"
+                    "result": -3,
+                    "message": "组合ID不能重复"
                 }
             else:
                 try:
                     grpInfo = {
-                        "id":id,
-                        "name":name,
-                        "path":path,
-                        "info":info,
-                        "gtype":gtype,
-                        "datmod":datmod,
-                        "env":env,
-                        "mqurl":mqurl
-                    }   
+                        "id": id,
+                        "name": name,
+                        "path": path,
+                        "info": info,
+                        "gtype": gtype,
+                        "datmod": datmod,
+                        "env": env,
+                        "mqurl": mqurl
+                    }
 
                     if self.__data_mgr__.add_group(grpInfo):
                         ret = {
-                            "result":0,
-                            "message":"Ok"
+                            "result": 0,
+                            "message": "Ok"
                         }
 
                         if action == "add":
@@ -1112,13 +1126,14 @@ class WtMonSvr(WatcherSink):
                         self._dog.updateMQURL(id, mqurl)
                     else:
                         ret = {
-                            "result":-2,
-                            "message":"添加用户失败"
+                            "result": -2,
+                            "message": "添加用户失败"
                         }
-                except:
+                except Exception as e:
+                    print(e)
                     ret = {
-                        "result":-1,
-                        "message":"请求解析失败"
+                        "result": -1,
+                        "message": "请求解析失败"
                     }
 
             return pack_rsp(ret)
@@ -1138,33 +1153,33 @@ class WtMonSvr(WatcherSink):
 
             if len(id) == 0:
                 ret = {
-                    "result":-1,
-                    "message":"组合ID不能为空"
+                    "result": -1,
+                    "message": "组合ID不能为空"
                 }
             elif not self.__data_mgr__.has_group(id):
                 ret = {
-                    "result":-3,
-                    "message":"该组合不存在"
+                    "result": -3,
+                    "message": "该组合不存在"
                 }
             elif self._dog.isRunning(id):
                 ret = {
-                    "result":-3,
-                    "message":"请先停止该组合"
+                    "result": -3,
+                    "message": "请先停止该组合"
                 }
             else:
                 if True:
                     self._dog.delApp(id)
                     self.__data_mgr__.del_group(id)
                     ret = {
-                        "result":0,
-                        "message":"Ok"
+                        "result": 0,
+                        "message": "Ok"
                     }
 
                     self.__data_mgr__.log_action(adminInfo, "delgrp", id)
                 else:
                     ret = {
-                        "result":-1,
-                        "message":"请求解析失败"
+                        "result": -1,
+                        "message": "请求解析失败"
                     }
 
             return pack_rsp(ret)
@@ -1179,25 +1194,25 @@ class WtMonSvr(WatcherSink):
             bSucc, adminInfo = check_auth()
             if not bSucc:
                 return pack_rsp(adminInfo)
-            
+
             grpid = get_param(json_data, "groupid")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 if self._dog.isRunning(grpid):
                     self._dog.stop(grpid)
                 ret = {
-                    "result":0,
-                    "message":"Ok"
+                    "result": 0,
+                    "message": "Ok"
                 }
 
                 self.__data_mgr__.log_action(adminInfo, "stopgrp", grpid)
 
             return pack_rsp(ret)
-        
+
         # 组合启动
         @app.route("/mgr/startgrp", methods=["POST"])
         def cmd_start_group():
@@ -1208,19 +1223,19 @@ class WtMonSvr(WatcherSink):
             bSucc, adminInfo = check_auth()
             if not bSucc:
                 return pack_rsp(adminInfo)
-            
+
             grpid = get_param(json_data, "groupid")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 if not self._dog.isRunning(grpid):
                     self._dog.start(grpid)
                 ret = {
-                    "result":0,
-                    "message":"Ok"
+                    "result": 0,
+                    "message": "Ok"
                 }
                 self.__data_mgr__.log_action(adminInfo, "startgrp", grpid)
 
@@ -1238,8 +1253,8 @@ class WtMonSvr(WatcherSink):
                 return pack_rsp(adminInfo)
 
             ret = {
-                "result":0,
-                "message":"Ok",
+                "result": 0,
+                "message": "Ok",
                 "path": sys.executable
             }
 
@@ -1259,21 +1274,21 @@ class WtMonSvr(WatcherSink):
             grpid = get_param(json_data, "groupid")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 monCfg = self._dog.getAppConf(grpid)
                 if monCfg is None:
                     ret = {
-                        "result":0,
-                        "message":"ok"
+                        "result": 0,
+                        "message": "ok"
                     }
                 else:
                     ret = {
-                        "result":0,
-                        "message":"ok",
-                        "config":monCfg
+                        "result": 0,
+                        "message": "ok",
+                        "config": monCfg
                     }
 
             return pack_rsp(ret)
@@ -1289,13 +1304,13 @@ class WtMonSvr(WatcherSink):
             if not bSucc:
                 return pack_rsp(adminInfo)
 
-            #这里本来是要做检查的，算了，先省事吧
+            # 这里本来是要做检查的，算了，先省事吧
             isGrp = get_param(json_data, "group", bool, False)
-            
+
             self._dog.applyAppConf(json_data, isGrp)
             ret = {
-                "result":0,
-                "message":"ok"
+                "result": 0,
+                "message": "ok"
             }
             self.__data_mgr__.log_action(adminInfo, "cfgmon", json.dumps(json_data))
 
@@ -1317,14 +1332,14 @@ class WtMonSvr(WatcherSink):
                     self.deploy_tree = get_path_tree(self.deploy_dir, "root")
 
                 ret = {
-                    "result":0,
-                    "message":"Ok",
-                    "tree":self.deploy_tree
+                    "result": 0,
+                    "message": "Ok",
+                    "tree": self.deploy_tree
                 }
             else:
                 ret = {
-                    "result":-1,
-                    "message":"请求解析失败"
+                    "result": -1,
+                    "message": "请求解析失败"
                 }
 
             return pack_rsp(ret)
@@ -1343,15 +1358,15 @@ class WtMonSvr(WatcherSink):
             grpid = get_param(json_data, "groupid")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 monCfg = self.__data_mgr__.get_group(grpid)
 
                 ret = {
-                    "result":0,
-                    "message":"Ok",
+                    "result": 0,
+                    "message": "Ok",
                     "tree": get_cfg_tree(monCfg["path"], "root")
                 }
 
@@ -1373,14 +1388,15 @@ class WtMonSvr(WatcherSink):
                 for grpInfo in groups:
                     grpInfo["running"] = self._dog.isRunning(grpInfo["id"])
                 ret = {
-                    "result":0,
-                    "message":"Ok",
-                    "groups":groups
+                    "result": 0,
+                    "message": "Ok",
+                    "groups": groups
                 }
-            except:
+            except Exception as e:
+                print(e)
                 ret = {
-                    "result":-1,
-                    "message":"请求解析失败"
+                    "result": -1,
+                    "message": "请求解析失败"
                 }
 
             return pack_rsp(ret)
@@ -1400,19 +1416,19 @@ class WtMonSvr(WatcherSink):
             path = get_param(json_data, "path")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 monCfg = self.__data_mgr__.get_group(grpid)
                 root = monCfg["path"]
                 if path[:len(root)] != root:
                     ret = {
-                        "result":-1,
-                        "message":"目标文件不在当前组合下"
+                        "result": -1,
+                        "message": "目标文件不在当前组合下"
                     }
                 else:
-                    f = open(path,'rb')
+                    f = open(path, 'rb')
                     content = f.read()
                     f.close()
 
@@ -1420,8 +1436,8 @@ class WtMonSvr(WatcherSink):
                     content = content.decode(encoding)
 
                     ret = {
-                        "result":0,
-                        "message":"Ok",
+                        "result": 0,
+                        "message": "Ok",
                         "content": content
                     }
 
@@ -1443,42 +1459,43 @@ class WtMonSvr(WatcherSink):
             path = get_param(json_data, "path")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 monCfg = self.__data_mgr__.get_group(grpid)
                 root = monCfg["path"]
                 if path[:len(root)] != root:
                     ret = {
-                        "result":-1,
-                        "message":"目标文件不在当前组合下"
+                        "result": -1,
+                        "message": "目标文件不在当前组合下"
                     }
                 else:
                     try:
-                        f = open(path,'rb')
+                        f = open(path, 'rb')
                         old_content = f.read()
                         f.close()
                         encoding = chardet.detect(old_content)["encoding"]
 
                         backup_file(path)
 
-                        f = open(path,'wb')
+                        f = open(path, 'wb')
                         f.write(content.encode(encoding))
                         f.close()
 
                         ret = {
-                            "result":0,
-                            "message":"Ok"
+                            "result": 0,
+                            "message": "Ok"
                         }
-                    except:
+                    except Exception as e:
+                        print(e)
                         ret = {
-                            "result":-1,
-                            "message":"文件保存失败"
+                            "result": -1,
+                            "message": "文件保存失败"
                         }
 
             return pack_rsp(ret)
-        
+
         # 查询策略列表
         @app.route("/mgr/qrystras", methods=["POST"])
         def qry_strategys():
@@ -1493,14 +1510,14 @@ class WtMonSvr(WatcherSink):
             grpid = get_param(json_data, "groupid")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"Ok",
-                    "strategies":self.__data_mgr__.get_strategies(grpid)
+                    "result": 0,
+                    "message": "Ok",
+                    "strategies": self.__data_mgr__.get_strategies(grpid)
                 }
 
             return pack_rsp(ret)
@@ -1519,14 +1536,14 @@ class WtMonSvr(WatcherSink):
             grpid = get_param(json_data, "groupid")
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"Ok",
-                    "channels":self.__data_mgr__.get_channels(grpid)
+                    "result": 0,
+                    "message": "Ok",
+                    "channels": self.__data_mgr__.get_channels(grpid)
                 }
 
             return pack_rsp(ret)
@@ -1547,8 +1564,8 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 grpInfo = self.__data_mgr__.get_group(grpid)
@@ -1562,17 +1579,18 @@ class WtMonSvr(WatcherSink):
 
                     targets.sort()
                     filename = os.path.join(logfolder, targets[-1])
-                    content,lines = get_tail(filename, 100)
+                    content, lines = get_tail(filename, 100)
                     ret = {
-                        "result":0,
-                        "message":"Ok",
-                        "content":content,
-                        "lines":lines
+                        "result": 0,
+                        "message": "Ok",
+                        "content": content,
+                        "lines": lines
                     }
-                except:
+                except Exception as e:
+                    print(e)
                     ret = {
-                        "result":-1,
-                        "message":"请求解析失败"
+                        "result": -1,
+                        "message": "请求解析失败"
                     }
 
             return pack_rsp(ret)
@@ -1593,16 +1611,15 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "trades": self.__data_mgr__.get_trades(gid, sid)
                 }
-                    
 
             return pack_rsp(ret)
 
@@ -1622,16 +1639,15 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "signals": self.__data_mgr__.get_signals(gid, sid)
                 }
-                    
 
             return pack_rsp(ret)
 
@@ -1651,13 +1667,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "rounds": self.__data_mgr__.get_rounds(gid, sid)
                 }
 
@@ -1679,13 +1695,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "positions": self.__data_mgr__.get_positions(gid, sid)
                 }
 
@@ -1707,13 +1723,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "funds": self.__data_mgr__.get_funds(gid, sid)
                 }
 
@@ -1735,13 +1751,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "orders": self.__data_mgr__.get_channel_orders(gid, cid)
                 }
 
@@ -1763,13 +1779,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "trades": self.__data_mgr__.get_channel_trades(gid, cid)
                 }
 
@@ -1791,13 +1807,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "positions": self.__data_mgr__.get_channel_positions(gid, cid)
                 }
 
@@ -1819,13 +1835,13 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "funds": self.__data_mgr__.get_channel_funds(gid, cid)
                 }
 
@@ -1845,13 +1861,12 @@ class WtMonSvr(WatcherSink):
             users = self.__data_mgr__.get_users()
             for usrInfo in users:
                 usrInfo.pop("passwd")
-            
+
             ret = {
-                "result":0,
-                "message":"",
+                "result": 0,
+                "message": "",
                 "users": users
             }
-                
 
             return pack_rsp(ret)
 
@@ -1868,8 +1883,8 @@ class WtMonSvr(WatcherSink):
 
             self.__data_mgr__.add_user(json_data, adminInfo["loginid"])
             ret = {
-                "result":0,
-                "message":"Ok"
+                "result": 0,
+                "message": "Ok"
             }
 
             self.__data_mgr__.log_action(adminInfo, "cmtuser", json.dumps(json_data))
@@ -1892,8 +1907,8 @@ class WtMonSvr(WatcherSink):
             if self.__data_mgr__.del_user(loginid, adminInfo["loginid"]):
                 self.__data_mgr__.log_action(adminInfo, "delusr", loginid)
             ret = {
-                "result":0,
-                "message":"Ok"
+                "result": 0,
+                "message": "Ok"
             }
 
             return pack_rsp(ret)
@@ -1914,23 +1929,23 @@ class WtMonSvr(WatcherSink):
 
             if len(pwd) == 0 or len(user) == 0:
                 ret = {
-                    "result":-1,
-                    "message":"密码都不能为空"
+                    "result": -1,
+                    "message": "密码都不能为空"
                 }
             else:
-                encpwd = hashlib.md5((user+pwd).encode("utf-8")).hexdigest()
+                encpwd = hashlib.md5((user + pwd).encode("utf-8")).hexdigest()
                 usrInf = self.__data_mgr__.get_user(user)
                 if usrInf is None:
                     ret = {
-                        "result":-1,
-                        "message":"用户不存在"
+                        "result": -1,
+                        "message": "用户不存在"
                     }
                 else:
                     self.__data_mgr__.mod_user_pwd(user, encpwd, adminInfo["loginid"])
                     self.__data_mgr__.log_action(adminInfo, "resetpwd", loginid)
                     ret = {
-                        "result":0,
-                        "message":"Ok"
+                        "result": 0,
+                        "message": "Ok"
                     }
 
             return pack_rsp(ret)
@@ -1950,10 +1965,10 @@ class WtMonSvr(WatcherSink):
             edate = get_param(json_data, "edate")
 
             ret = {
-                "result":0,
-                "message":"",
+                "result": 0,
+                "message": "",
                 "actions": self.__data_mgr__.get_actions(sdate, edate)
-            }   
+            }
 
             return pack_rsp(ret)
 
@@ -1970,13 +1985,13 @@ class WtMonSvr(WatcherSink):
 
             schedules = self._dog.get_apps()
             for appid in schedules:
-                schedules[appid]["group"] = self.__data_mgr__.has_group(appid)                
+                schedules[appid]["group"] = self.__data_mgr__.has_group(appid)
 
             ret = {
-                "result":0,
-                "message":"",
+                "result": 0,
+                "message": "",
                 "schedules": schedules
-            }   
+            }
 
             return pack_rsp(ret)
 
@@ -1989,19 +2004,19 @@ class WtMonSvr(WatcherSink):
             bSucc, adminInfo = check_auth()
             if not bSucc:
                 return pack_rsp(adminInfo)
-            
+
             appid = get_param(json_data, "appid")
             if not self._dog.has_app(appid):
                 ret = {
-                    "result":-1,
-                    "message":"App不存在"
+                    "result": -1,
+                    "message": "App不存在"
                 }
             else:
                 if not self._dog.isRunning(appid):
                     self._dog.start(appid)
                 ret = {
-                    "result":0,
-                    "message":"Ok"
+                    "result": 0,
+                    "message": "Ok"
                 }
                 self.__data_mgr__.log_action(adminInfo, "startapp", appid)
 
@@ -2017,19 +2032,19 @@ class WtMonSvr(WatcherSink):
             bSucc, adminInfo = check_auth()
             if not bSucc:
                 return pack_rsp(adminInfo)
-            
+
             appid = get_param(json_data, "appid")
             if not self._dog.has_app(appid):
                 ret = {
-                    "result":-1,
-                    "message":"App不存在"
+                    "result": -1,
+                    "message": "App不存在"
                 }
             else:
                 if self._dog.isRunning(appid):
                     self._dog.stop(appid)
                 ret = {
-                    "result":0,
-                    "message":"Ok"
+                    "result": 0,
+                    "message": "Ok"
                 }
 
                 self.__data_mgr__.log_action(adminInfo, "stopapp", appid)
@@ -2046,14 +2061,14 @@ class WtMonSvr(WatcherSink):
             bSucc, adminInfo = check_auth()
             if not bSucc:
                 return pack_rsp(adminInfo)
-            
+
             filename = os.getcwd() + "/logs/WtMonSvr.log"
-            content,lines = get_tail(filename, 100, "UTF-8")
+            content, lines = get_tail(filename, 100, "UTF-8")
             ret = {
-                "result":0,
-                "message":"Ok",
-                "content":content,
-                "lines":lines
+                "result": 0,
+                "message": "Ok",
+                "content": content,
+                "lines": lines
             }
 
             return pack_rsp(ret)
@@ -2069,41 +2084,41 @@ class WtMonSvr(WatcherSink):
             if not bSucc:
                 return pack_rsp(adminInfo)
 
-            id = get_param(json_data, "appid")
+            ids = get_param(json_data, "appid")
 
-            if len(id) == 0:
+            if len(ids) == 0:
                 ret = {
-                    "result":-1,
-                    "message":"组合ID不能为空"
+                    "result": -1,
+                    "message": "组合ID不能为空"
                 }
-            elif self.__data_mgr__.has_group(id):
+            elif self.__data_mgr__.has_group(ids):
                 ret = {
-                    "result":-2,
-                    "message":"该调度任务是策略组合，请从组合管理删除"
+                    "result": -2,
+                    "message": "该调度任务是策略组合，请从组合管理删除"
                 }
-            elif not self._dog.has_app(id):
+            elif not self._dog.has_app(ids):
                 ret = {
-                    "result":-3,
-                    "message":"该调度任务不存在"
+                    "result": -3,
+                    "message": "该调度任务不存在"
                 }
-            elif self._dog.isRunning(id):
+            elif self._dog.isRunning(ids):
                 ret = {
-                    "result":-4,
-                    "message":"请先停止该任务"
+                    "result": -4,
+                    "message": "请先停止该任务"
                 }
             else:
                 if True:
-                    self._dog.delApp(id)
+                    self._dog.delApp(ids)
                     ret = {
-                        "result":0,
-                        "message":"Ok"
+                        "result": 0,
+                        "message": "Ok"
                     }
 
-                    self.__data_mgr__.log_action(adminInfo, "delapp", id)
+                    self.__data_mgr__.log_action(adminInfo, "delapp", ids)
                 else:
                     ret = {
-                        "result":-1,
-                        "message":"请求解析失败"
+                        "result": -1,
+                        "message": "请求解析失败"
                     }
 
             return pack_rsp(ret)
@@ -2123,16 +2138,15 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "positions": self.__data_mgr__.get_group_positions(gid)
                 }
-                    
 
             return pack_rsp(ret)
 
@@ -2151,16 +2165,15 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "trades": self.__data_mgr__.get_group_trades(gid)
                 }
-                    
 
             return pack_rsp(ret)
 
@@ -2179,19 +2192,18 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "rounds": self.__data_mgr__.get_group_rounds(gid)
                 }
-                    
 
             return pack_rsp(ret)
-        
+
         # 查询组合资金
         @app.route("/mgr/qryportfunds", methods=["POST"])
         def qry_group_funds():
@@ -2207,16 +2219,15 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "funds": self.__data_mgr__.get_group_funds(gid)
                 }
-                    
 
             return pack_rsp(ret)
 
@@ -2235,16 +2246,16 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "performance": self.__data_mgr__.get_group_performances(gid)
                 }
-                    
+
             return pack_rsp(ret)
 
         # 查询组合过滤器
@@ -2262,16 +2273,16 @@ class WtMonSvr(WatcherSink):
 
             if not self.__data_mgr__.has_group(gid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 ret = {
-                    "result":0,
-                    "message":"",
+                    "result": 0,
+                    "message": "",
                     "filters": self.__data_mgr__.get_group_filters(gid)
                 }
-                    
+
             return pack_rsp(ret)
 
         # 提交组合过滤器
@@ -2286,66 +2297,66 @@ class WtMonSvr(WatcherSink):
                 return pack_rsp(usrInfo)
 
             grpid = get_param(json_data, "groupid")
-            filters = get_param(json_data, "filters", type=dict)
+            filters = get_param(json_data, "filters", func=dict)
             if not self.__data_mgr__.has_group(grpid):
                 ret = {
-                    "result":-1,
-                    "message":"组合不存在"
+                    "result": -1,
+                    "message": "组合不存在"
                 }
             else:
                 try:
                     self.__data_mgr__.set_group_filters(grpid, filters)
                     ret = {
-                        "result":0,
-                        "message":"Ok"
+                        "result": 0,
+                        "message": "Ok"
                     }
-                except:
+                except Exception as e:
+                    print(e)
                     ret = {
-                        "result":-1,
-                        "message":"过滤器保存失败"
+                        "result": -1,
+                        "message": "过滤器保存失败"
                     }
 
             return pack_rsp(ret)
-            
-    
-    def __run_impl__(self, port:int, host:str):
+
+    def __run_impl__(self, port: int, host: str):
         self._dog.run()
-        self.push_svr.run(port = port, host = host)
-    
-    def run(self, port:int = 8080, host="0.0.0.0", bSync:bool = True):
+        self.push_svr.run(port=port, host=host)
+
+    def run(self, port: int = 8080, host="0.0.0.0", bSync: bool = True):
         if bSync:
             self.__run_impl__(port, host)
         else:
             import threading
-            self.worker = threading.Thread(target=self.__run_impl__, args=(port,host,))
+            self.worker = threading.Thread(target=self.__run_impl__, args=(port, host,))
             self.worker.setDaemon(True)
             self.worker.start()
 
     def init_logging(self):
         pass
 
-    def on_start(self, grpid:str):
+    def on_start(self, grpid: str):
         if self.__data_mgr__.has_group(grpid):
             self.push_svr.notifyGrpEvt(grpid, 'start')
 
-    def on_stop(self, grpid:str, isErr:bool):
+    def on_stop(self, grpid: str, isErr: bool):
         if self.__data_mgr__.has_group(grpid):
             self.push_svr.notifyGrpEvt(grpid, 'stop')
-        
+
         # 如果是错误，要通知管理员
         if isErr and self._sink_:
             grpInfo = self.__data_mgr__.get_group(grpid)
-            self._sink_.notify("fatal", "检测到 %s[%s] 意外停止, 请及时处理!!!"%(grpInfo["name"], grpid))
-    
-    def on_output(self, grpid:str, tag:str, time:int, message:str):
+            self._sink_.notify("fatal", "检测到 %s[%s] 意外停止, 请及时处理!!!" % (grpInfo["name"], grpid))
+
+    def on_output(self, grpid: str, tag: str, time: int, message: str):
         if self.__data_mgr__.has_group(grpid):
             self.push_svr.notifyGrpLog(grpid, tag, time, message)
 
-    def on_order(self, grpid:str, chnl:str, ordInfo:dict):
+    def on_order(self, grpid: str, chnl: str, ordInfo: dict):
         self.push_svr.notifyGrpChnlEvt(grpid, chnl, 'order', ordInfo)
 
-    def on_trade(self, grpid:str, chnl:str, trdInfo:dict):
+    def on_trade(self, grpid: str, chnl: str, trdInfo: dict):
         self.push_svr.notifyGrpChnlEvt(grpid, chnl, 'trade', trdInfo)
-    
-    def on_notify(self, grpid:str, chnl:str, message:str):
+
+    def on_notify(self, grpid: str, chnl: str, message: str):
         self.push_svr.notifyGrpChnlEvt(grpid, chnl, 'notify', message)

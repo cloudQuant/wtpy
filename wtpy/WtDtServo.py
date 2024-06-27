@@ -1,40 +1,44 @@
+import gzip
+import io
+import json
+import os
+import urllib.request
+
+from flask import Flask, request, make_response
+from flask_compress import Compress
+
+from wtpy.WtCoreDefs import BarList, TickList, WTSBarStruct, WTSTickStruct
 from wtpy.WtUtilDefs import singleton
 from wtpy.wrapper import WtDtServoApi
-from wtpy.WtCoreDefs import BarList, TickList, WTSBarStruct, WTSTickStruct
 
-from flask import Flask, session, redirect, request, make_response
-from flask_compress  import Compress
-
-import urllib.request
-import io
-import gzip
-import json
-
-import os
 
 def pack_rsp(obj):
     rsp = make_response(json.dumps(obj))
-    rsp.headers["content-type"]= "text/json;charset=utf-8"
+    rsp.headers["content-type"] = "text/json;charset=utf-8"
     return rsp
+
 
 def parse_data():
     try:
         data = request.get_data()
         json_data = json.loads(data.decode("utf-8"))
-        return True,json_data
-    except:
+        return True, json_data
+    except Exception as e:
+        print(e)
         return False, {
             "result": -998,
             "message": "请求数据解析失败"
         }
 
-def get_param(json_data, key:str, type=str, defVal = ""):
+
+def get_param(json_data, key: str, func=str, defVal=""):
     if key not in json_data:
         return defVal
     else:
-        return type(json_data[key])
+        return func(json_data[key])
 
-def httpPost(url, datas:dict, encoding='utf-8') -> dict:
+
+def httpPost(url, datas: dict, encoding='utf-8') -> dict:
     headers = {
         'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)',
         'Accept-encoding': 'gzip'
@@ -55,6 +59,7 @@ def httpPost(url, datas:dict, encoding='utf-8') -> dict:
     else:
         return None
 
+
 @singleton
 class WtDtServo:
 
@@ -64,13 +69,13 @@ class WtDtServo:
         self.__cfg_commited__ = False
         self.local_api = None
         self.server_inst = None
-        self.remote_api = None    
+        self.remote_api = None
 
     def __check_config__(self):
-        '''
+        """
         检查设置项\n
         主要会补充一些默认设置项
-        '''
+        """
         if self.local_api is None:
             self.local_api = WtDtServoApi()
 
@@ -82,24 +87,25 @@ class WtDtServo:
 
         if "data" not in self.__config__:
             self.__config__["data"] = {
-                "store":{
-                    "path":"./storage/"
+                "store": {
+                    "path": "./storage/"
                 }
             }
 
-    def setRemoteUrl(self, url:str="http://127.0.0.1:8081"):
+    def setRemoteUrl(self, url: str = "http://127.0.0.1:8081"):
         if self.__config__ is not None:
             raise Exception('WtDtServo is already in local mode')
             return
-        
+
         self.remote_api = WtDtRemoteServo(url)
 
-
-    def setBasefiles(self, folder:str="./common/", commfile:str="commodities.json", contractfile:str="contracts.json", 
-                holidayfile:str="holidays.json", sessionfile:str="sessions.json", hotfile:str="hots.json"):
-        '''
+    def setBasefiles(self, folder: str = "./common/", commfile: str = "commodities.json",
+                     contractfile: str = "contracts.json",
+                     holidayfile: str = "holidays.json", sessionfile: str = "sessions.json",
+                     hotfile: str = "hots.json"):
+        """
         C接口初始化
-        '''
+        """
         self.__check_config__()
 
         self.__config__["basefiles"]["commodity"] = os.path.join(folder, commfile)
@@ -108,14 +114,14 @@ class WtDtServo:
         self.__config__["basefiles"]["session"] = os.path.join(folder, sessionfile)
         self.__config__["basefiles"]["hot"] = os.path.join(folder, hotfile)
 
-    def setStorage(self, path:str = "./storage/"):
+    def setStorage(self, path: str = "./storage/"):
         self.__config__["data"]["store"]["path"] = path
-    
+
     def commitConfig(self):
         if self.remote_api is not None:
             raise Exception('WtDtServo is already in remote mode')
             return
-            
+
         if self.__cfg_commited__:
             return
 
@@ -126,10 +132,10 @@ class WtDtServo:
         except OSError as oe:
             print(oe)
 
-    def __server_impl__(self, port:int, host:str):
-        self.server_inst.run(port = port, host = host)
-        
-    def runServer(self, port:int = 8081, host="0.0.0.0", bSync:bool = True):
+    def __server_impl__(self, port: int, host: str):
+        self.server_inst.run(port=port, host=host)
+
+    def runServer(self, port: int = 8081, host="0.0.0.0", bSync: bool = True):
         if self.remote_api is not None:
             raise Exception('WtDtServo is already in remote mode')
             return
@@ -154,22 +160,23 @@ class WtDtServo:
 
             if (fromTime is None and dataCount is None) or (fromTime is not None and dataCount is not None):
                 ret = {
-                    "result":-1,
-                    "message":"Only one of stime and count must be valid at the same time"
+                    "result": -1,
+                    "message": "Only one of stime and count must be valid at the same time"
                 }
             else:
-                bars = self.local_api.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
+                bars = self.local_api.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount,
+                                               endTime=endTime)
                 if bars is None:
                     ret = {
-                        "result":-2,
-                        "message":"Data not found"
+                        "result": -2,
+                        "message": "Data not found"
                     }
                 else:
-                    bar_list = [curBar.to_dict  for curBar in bars]
-                    
+                    bar_list = [curBar.to_dict for curBar in bars]
+
                     ret = {
-                        "result":0,
-                        "message":"Ok",
+                        "result": 0,
+                        "message": "Ok",
                         "bars": bar_list
                     }
 
@@ -188,15 +195,16 @@ class WtDtServo:
 
             if (fromTime is None and dataCount is None) or (fromTime is not None and dataCount is not None):
                 ret = {
-                    "result":-1,
-                    "message":"Only one of stime and count must be valid at the same time"
+                    "result": -1,
+                    "message": "Only one of stime and count must be valid at the same time"
                 }
             else:
-                ticks = self.local_api.get_ticks(stdCode=stdCode, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
+                ticks = self.local_api.get_ticks(stdCode=stdCode, fromTime=fromTime, dataCount=dataCount,
+                                                 endTime=endTime)
                 if ticks is None:
                     ret = {
-                        "result":-2,
-                        "message":"Data not found"
+                        "result": -2,
+                        "message": "Data not found"
                     }
                 else:
                     tick_list = list()
@@ -212,10 +220,10 @@ class WtDtServo:
                         curTick.pop("ask_qty")
 
                         tick_list.append(curTick)
-                    
+
                     ret = {
-                        "result":0,
-                        "message":"Ok",
+                        "result": 0,
+                        "message": "Ok",
                         "ticks": tick_list
                     }
 
@@ -226,35 +234,38 @@ class WtDtServo:
             self.__server_impl__(port, host)
         else:
             import threading
-            self.worker = threading.Thread(target=self.__server_impl__, args=(port,host,))
+            self.worker = threading.Thread(target=self.__server_impl__, args=(port, host,))
             self.worker.setDaemon(True)
             self.worker.start()
 
-    def get_bars(self, stdCode:str, period:str, fromTime:int = None, dataCount:int = None, endTime:int = 0) -> BarList:
-        '''
+    def get_bars(self, stdCode: str, period: str, fromTime: int = None, dataCount: int = None,
+                 endTime: int = 0) -> BarList:
+        """
         获取K线数据\n
         @stdCode    标准合约代码\n
         @period     基础K线周期，m1/m5/d\n
         @fromTime   开始时间，日线数据格式yyyymmdd，分钟线数据为格式为yyyymmddHHMM\n
         @endTime    结束时间，日线数据格式yyyymmdd，分钟线数据为格式为yyyymmddHHMM，为0则读取到最后一条
-        '''
+        """
         if self.remote_api is not None:
-            return self.remote_api.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
-        
+            return self.remote_api.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount,
+                                            endTime=endTime)
+
         self.commitConfig()
 
         if (fromTime is None and dataCount is None) or (fromTime is not None and dataCount is not None):
             raise Exception('Only one of fromTime and dataCount must be valid at the same time')
 
-        return self.local_api.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
+        return self.local_api.get_bars(stdCode=stdCode, period=period, fromTime=fromTime, dataCount=dataCount,
+                                       endTime=endTime)
 
-    def get_ticks(self, stdCode:str, fromTime:int = None, dataCount:int = None, endTime:int = 0) -> TickList:
-        '''
+    def get_ticks(self, stdCode: str, fromTime: int = None, dataCount: int = None, endTime: int = 0) -> TickList:
+        """
         获取tick数据\n
         @stdCode    标准合约代码\n
         @fromTime   开始时间，格式为yyyymmddHHMM\n
         @endTime    结束时间，格式为yyyymmddHHMM，为0则读取到最后一条
-        '''
+        """
         if self.remote_api is not None:
             return self.remote_api.get_ticks(stdCode=stdCode, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
 
@@ -265,27 +276,29 @@ class WtDtServo:
 
         return self.local_api.get_ticks(stdCode=stdCode, fromTime=fromTime, dataCount=dataCount, endTime=endTime)
 
+
 class WtDtRemoteServo:
 
-    def __init__(self, url:str="http://127.0.0.1:8081"):
+    def __init__(self, url: str = "http://127.0.0.1:8081"):
         self.remote_url = url
 
-    def get_bars(self, stdCode:str, period:str, fromTime:int = None, dataCount:int = None, endTime:int = 0) -> BarList:
-        '''
+    def get_bars(self, stdCode: str, period: str, fromTime: int = None, dataCount: int = None,
+                 endTime: int = 0) -> BarList:
+        """
         获取K线数据\n
         @stdCode    标准合约代码\n
         @period     基础K线周期，m1/m5/d\n
         @fromTime   开始时间，日线数据格式yyyymmdd，分钟线数据为格式为yyyymmddHHMM\n
         @endTime    结束时间，日线数据格式yyyymmdd，分钟线数据为格式为yyyymmddHHMM，为0则读取到最后一条
-        '''
+        """
         if (fromTime is None and dataCount is None) or (fromTime is not None and dataCount is not None):
             raise Exception('Only one of fromTime and dataCount must be valid at the same time')
 
         url = self.remote_url + "/getbars"
         data = {
-            "code":stdCode,
-            "period":period,
-            "etime":endTime
+            "code": stdCode,
+            "period": period,
+            "etime": endTime
         }
 
         if fromTime is not None:
@@ -314,23 +327,21 @@ class WtDtRemoteServo:
             bs.diff = curBar["diff"]
             barCache.append(bs)
         return barCache
-            
-        
 
-    def get_ticks(self, stdCode:str, fromTime:int = None, dataCount:int = None, endTime:int = 0) -> TickList:
-        '''
+    def get_ticks(self, stdCode: str, fromTime: int = None, dataCount: int = None, endTime: int = 0) -> TickList:
+        """
         获取tick数据\n
         @stdCode    标准合约代码\n
         @fromTime   开始时间，格式为yyyymmddHHMM\n
         @endTime    结束时间，格式为yyyymmddHHMM，为0则读取到最后一条
-        '''
+        """
         if (fromTime is None and dataCount is None) or (fromTime is not None and dataCount is not None):
             raise Exception('Only one of fromTime and dataCount must be valid at the same time')
 
         url = self.remote_url + "/getticks"
         data = {
-            "code":stdCode,
-            "etime":endTime
+            "code": stdCode,
+            "etime": endTime
         }
 
         if fromTime is not None:
