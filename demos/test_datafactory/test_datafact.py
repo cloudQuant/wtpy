@@ -1,11 +1,11 @@
-'''
+"""
 Descripttion: Automatically generated file comment
-version: 
+version:
 Author: Wesley
 Date: 2021-02-22 16:25:48
 LastEditors: Wesley
 LastEditTime: 2021-08-25 14:20:57
-'''
+"""
 from wtpy.apps.datahelper import DHFactory as DHF
 
 hlper = DHF.createHelper("baostock")
@@ -25,7 +25,7 @@ hlper.auth()
 # 下载K线数据
 # hlper.dmpBarsToFile(folder='./', codes=["CFFEX.IF.HOT","CFFEX.IC.HOT"], period='min1')
 # hlper.dmpBarsToFile(folder='./', codes=["CFFEX.IF.HOT","CFFEX.IC.HOT"], period='min5')
-hlper.dmpBarsToFile(folder='./', codes=["SZSE.399005","SZSE.399006","SZSE.399303"], period='day')
+hlper.dmpBarsToFile(folder='./', codes=["SZSE.399005", "SZSE.399006", "SZSE.399303"], period='day')
 
 # 下载复权因子
 # hlper.dmpAdjFactorsToFile(codes=["SSE.600000",'SZSE.000001'], filename="./adjfactors.json")
